@@ -1,0 +1,45 @@
+__include__: [
+  '../dataset/coco_detection.yml',
+  '../runtime.yml',
+  './include/dataloader.yml',
+  './include/optimizer.yml',
+  './include/rtdetr_r50vd.yml',
+]
+
+output_dir: ./output/rtdetr_r50vd_6x_coco_feedback
+
+# Enable the decoder-to-encoder feedback connection
+RTDETRTransformer:
+  use_feedback: True
+  feedback_layer_idx: 0          # feedback fires after decoder layer index 0 (the first layer)
+  feedback_gate_init: -6.0       # sigmoid(-6) ≈ 0.0025 — feedback starts near off
+  feedback_dim_feedforward: 1024
+  feedback_dropout: 0.0
+
+# Freeze feedback entirely for the first N epochs so the decoder can stabilize
+feedback_warmup_epochs: 5
+
+# Separate optimizer param group for feedback params:
+#   - 0.1x base LR (1e-5 vs. base 1e-4)
+#   - keep weight_decay at the base value
+# The other decoder-norm/bias pattern is extended with a (?!.*feedback) negative
+# lookahead so regex patterns stay disjoint (required by get_optim_params).
+optimizer:
+  type: AdamW
+  params:
+    -
+      params: 'backbone'
+      lr: 0.00001
+    -
+      params: 'decoder\.feedback'
+      lr: 0.00001
+    -
+      params: '^(?=.*encoder(?=.*bias|.*norm.*weight)).*$'
+      weight_decay: 0.
+    -
+      params: '^(?!.*feedback)(?=.*decoder(?=.*bias|.*norm.*weight)).*$'
+      weight_decay: 0.
+
+  lr: 0.0001
+  betas: [0.9, 0.999]
+  weight_decay: 0.0001

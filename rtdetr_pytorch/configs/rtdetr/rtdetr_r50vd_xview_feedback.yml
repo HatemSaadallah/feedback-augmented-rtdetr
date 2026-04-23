@@ -1,0 +1,77 @@
+# Fine-tune feedback-augmented RT-DETR on xView (tiled, 60 classes).
+# Expects: tiled xView dataset produced by tools/xview_to_coco.py and a
+# COCO-pretrained feedback checkpoint passed via --tuning.
+#
+# Example submit:
+#   python tools/train.py \
+#       -c configs/rtdetr/rtdetr_r50vd_xview_feedback.yml --amp \
+#       --tuning output/rtdetr_r50vd_6x_coco_feedback/checkpoint.pth
+
+__include__: [
+  '../dataset/xview_detection.yml',
+  '../runtime.yml',
+  './include/dataloader.yml',
+  './include/optimizer.yml',
+  './include/rtdetr_r50vd.yml',
+]
+
+output_dir: ./output/rtdetr_r50vd_xview_feedback
+
+# Override input size for tiled xView (default tile=800).
+train_dataloader:
+  dataset:
+    transforms:
+      ops:
+        - {type: RandomPhotometricDistort, p: 0.5}
+        - {type: RandomHorizontalFlip}
+        - {type: Resize, size: [640, 640]}
+        - {type: ToImageTensor}
+        - {type: ConvertDtype}
+        - {type: SanitizeBoundingBox, min_size: 1}
+        - {type: ConvertBox, out_fmt: 'cxcywh', normalize: True}
+
+val_dataloader:
+  dataset:
+    transforms:
+      ops:
+        - {type: Resize, size: [640, 640]}
+        - {type: ToImageTensor}
+        - {type: ConvertDtype}
+
+# Feedback settings (same as COCO feedback config)
+RTDETRTransformer:
+  use_feedback: True
+  feedback_layer_idx: 0
+  feedback_gate_init: -6.0
+  feedback_dim_feedforward: 1024
+  feedback_dropout: 0.0
+
+feedback_warmup_epochs: 2  # shorter warmup for fine-tune schedule
+
+# Shorter fine-tuning schedule
+epoches: 24
+
+optimizer:
+  type: AdamW
+  params:
+    -
+      params: 'backbone'
+      lr: 0.00001
+    -
+      params: 'decoder\.feedback'
+      lr: 0.00001
+    -
+      params: '^(?=.*encoder(?=.*bias|.*norm.*weight)).*$'
+      weight_decay: 0.
+    -
+      params: '^(?!.*feedback)(?=.*decoder(?=.*bias|.*norm.*weight)).*$'
+      weight_decay: 0.
+
+  lr: 0.0001
+  betas: [0.9, 0.999]
+  weight_decay: 0.0001
+
+lr_scheduler:
+  type: MultiStepLR
+  milestones: [18]
+  gamma: 0.1

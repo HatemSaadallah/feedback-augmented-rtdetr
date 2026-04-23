@@ -13,6 +13,7 @@ import torch.nn.init as init
 from .denoising import get_contrastive_denoising_training_group
 from .utils import deformable_attention_core_func, get_activation, inverse_sigmoid
 from .utils import bias_init_with_prob
+from .feedback_module import build_feedback_module, FeedbackAugmentedDecoder
 
 
 from src.core import register
@@ -301,8 +302,13 @@ class RTDETRTransformer(nn.Module):
                  learnt_init_query=False,
                  eval_spatial_size=None,
                  eval_idx=-1,
-                 eps=1e-2, 
-                 aux_loss=True):
+                 eps=1e-2,
+                 aux_loss=True,
+                 use_feedback=False,
+                 feedback_layer_idx=0,
+                 feedback_gate_init=-6.0,
+                 feedback_dim_feedforward=1024,
+                 feedback_dropout=0.0):
 
         super(RTDETRTransformer, self).__init__()
         assert position_embed_type in ['sine', 'learned'], \
@@ -329,6 +335,24 @@ class RTDETRTransformer(nn.Module):
         # Transformer module
         decoder_layer = TransformerDecoderLayer(hidden_dim, nhead, dim_feedforward, dropout, activation, num_levels, num_decoder_points)
         self.decoder = TransformerDecoder(hidden_dim, decoder_layer, num_decoder_layers, eval_idx)
+
+        # Optional decoder-to-encoder feedback (wraps self.decoder in place)
+        self.use_feedback = use_feedback
+        if use_feedback:
+            feedback = build_feedback_module(
+                d_model=hidden_dim,
+                nhead=nhead,
+                dim_feedforward=feedback_dim_feedforward,
+                dropout=feedback_dropout,
+                gate_init=feedback_gate_init,
+            )
+            self.decoder = FeedbackAugmentedDecoder(
+                base_decoder=self.decoder,
+                feedback=feedback,
+                num_queries=num_queries,
+                feedback_layer_idx=feedback_layer_idx,
+                s5_level_idx=-1,
+            )
 
         self.num_denoising = num_denoising
         self.label_noise_ratio = label_noise_ratio

@@ -33,7 +33,19 @@ class DetSolver(BaseSolver):
         for epoch in range(self.last_epoch + 1, args.epoches):
             if dist.is_dist_available_and_initialized():
                 self.train_dataloader.sampler.set_epoch(epoch)
-            
+
+            # Feedback warmup: disable decoder-to-encoder feedback for the first
+            # `feedback_warmup_epochs` epochs so the decoder can stabilize before
+            # its predictions start reshaping encoder memory.
+            model_unwrapped = dist.de_parallel(self.model)
+            transformer = getattr(model_unwrapped, 'decoder', None)
+            if transformer is not None and hasattr(transformer, 'decoder') \
+                    and hasattr(transformer.decoder, 'set_feedback_disabled'):
+                warmup_epochs = args.yaml_cfg.get('feedback_warmup_epochs', 5)
+                transformer.decoder.set_feedback_disabled(epoch < warmup_epochs)
+                print(f'feedback: disabled={epoch < warmup_epochs} '
+                      f'gate={transformer.decoder.gate_value:.4f}')
+
             train_stats = train_one_epoch(
                 self.model, self.criterion, self.train_dataloader, self.optimizer, self.device, epoch,
                 args.clip_max_norm, print_freq=args.log_step, ema=self.ema, scaler=self.scaler)
