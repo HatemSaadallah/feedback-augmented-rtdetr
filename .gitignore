@@ -202,3 +202,6 @@ v2_staging/
 .DS_Store
 *.swp
 *~
+
+# Presentation build cache
+presentation/_build/
