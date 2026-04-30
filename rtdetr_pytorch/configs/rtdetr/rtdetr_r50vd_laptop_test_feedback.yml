@@ -1,0 +1,64 @@
+# Laptop pipeline-validation config (NOT for producing AP numbers).
+# - Trains on val2017-as-train to skip the 18 GB train2017 download
+# - batch_size=2 to fit in 8 GB VRAM with AMP
+# - feedback_warmup_epochs=0 so gate starts moving from step 1 (so we can
+#   observe it climb within a few hundred iterations)
+# - multi_scale disabled to keep VRAM predictable
+
+__include__: [
+  '../dataset/coco_detection.yml',
+  '../runtime.yml',
+  './include/dataloader.yml',
+  './include/optimizer.yml',
+  './include/rtdetr_r50vd.yml',
+]
+
+output_dir: ./output/laptop_test_feedback
+
+# Use val2017 as training data (no 18 GB train download)
+train_dataloader:
+  dataset:
+    img_folder: /home/hatem/Desktop/rt-detr/data/coco/val2017/
+    ann_file:  /home/hatem/Desktop/rt-detr/data/coco/annotations/instances_val2017.json
+  batch_size: 2
+  num_workers: 2
+
+val_dataloader:
+  batch_size: 4
+  num_workers: 2
+
+# Disable multi-scale to keep peak VRAM predictable
+RTDETR:
+  multi_scale: ~
+
+RTDETRTransformer:
+  use_feedback: True
+  feedback_layer_idx: 0
+  feedback_gate_init: -6.0
+  feedback_dim_feedforward: 1024
+  feedback_dropout: 0.0
+
+# Gate unfrozen immediately so we can watch it learn during the short run
+feedback_warmup_epochs: 0
+
+epoches: 1   # run stops earlier via iter cap in tools/laptop_train_feedback.py
+
+optimizer:
+  type: AdamW
+  params:
+    -
+      params: 'backbone'
+      lr: 0.00001
+    -
+      params: 'decoder\.feedback'
+      lr: 0.00001
+    -
+      params: '^(?=.*encoder(?=.*bias|.*norm.*weight)).*$'
+      weight_decay: 0.
+    -
+      params: '^(?!.*feedback)(?=.*decoder(?=.*bias|.*norm.*weight)).*$'
+      weight_decay: 0.
+
+  lr: 0.0001
+  betas: [0.9, 0.999]
+  weight_decay: 0.0001

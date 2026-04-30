@@ -306,7 +306,9 @@ class RTDETRTransformer(nn.Module):
                  aux_loss=True,
                  use_feedback=False,
                  feedback_layer_idx=0,
-                 feedback_gate_init=-6.0,
+                 feedback_gate_init=0.0,
+                 feedback_gate_floor=0.0,
+                 feedback_level_mask=None,
                  feedback_dim_feedforward=1024,
                  feedback_dropout=0.0):
 
@@ -345,13 +347,14 @@ class RTDETRTransformer(nn.Module):
                 dim_feedforward=feedback_dim_feedforward,
                 dropout=feedback_dropout,
                 gate_init=feedback_gate_init,
+                gate_floor=feedback_gate_floor,
+                level_mask=feedback_level_mask,
             )
             self.decoder = FeedbackAugmentedDecoder(
                 base_decoder=self.decoder,
                 feedback=feedback,
                 num_queries=num_queries,
                 feedback_layer_idx=feedback_layer_idx,
-                s5_level_idx=-1,
             )
 
         self.num_denoising = num_denoising

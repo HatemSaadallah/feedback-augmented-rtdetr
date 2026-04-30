@@ -65,22 +65,35 @@ def _run(model, postproc, x: torch.Tensor, orig_size: torch.Tensor):
     return out, dets
 
 
-def _s5_attention_heatmap(model) -> np.ndarray:
-    """Return a 2D heatmap [H5, W5] of per-S5-token feedback strength.
+def _attention_heatmap(model, level: str = 's3') -> np.ndarray:
+    """Return a 2D heatmap of per-token feedback strength at the chosen pyramid
+    level. Multi-level feedback stashes attention over the FULL multi-level
+    memory of length L = H3*W3 + H4*W4 + H5*W5 (e.g. 6400 + 1600 + 400 = 8400
+    at 640x640). We slice the requested level's tokens and reshape.
 
-    Uses the most recent attention weights stashed by the feedback module:
-    shape [B, H5*W5, num_queries]. We take the max over queries per token so
-    each spatial location reflects "the strongest decoder guidance it received".
+    `level` ∈ {'s3', 's4', 's5'}. S3 is most informative for small objects
+    (stride 8, 80x80 tokens at 640x640 input).
     """
-    fb = model.decoder.decoder.feedback  # RTDETR -> RTDETRTransformer -> FeedbackAugmentedDecoder -> feedback
+    fb = model.decoder.decoder.feedback
     aw = fb.last_attn_weights  # [B, L, Q]
     if aw is None:
         raise RuntimeError('Feedback attention weights not stashed — was feedback disabled?')
     per_token = aw[0].max(dim=-1).values  # [L]
     n = per_token.numel()
-    h = w = int(round(n ** 0.5))
-    assert h * w == n, f'S5 slice {n} is not a perfect square'
-    return per_token.reshape(h, w).detach().cpu().numpy()
+    # Try to recover H,W for each level from the input size: assume strides 8/16/32.
+    # Token count per level given total: solve a*64 + a*16 + a*4 = n where a = (input/64)**2 = HW/64
+    # i.e. n = HW * (1 + 1/4 + 1/16) = HW * (21/16) ⇒ HW = n * 16 / 21
+    HW = int(round(n * 16 / 21))
+    side = int(round(HW ** 0.5))
+    assert side * side == HW, f'cannot recover image side from {n} tokens'
+    h3 = w3 = side          # stride 8
+    h4 = w4 = side // 2     # stride 16
+    h5 = w5 = side // 4     # stride 32
+    s3 = per_token[: h3 * w3].reshape(h3, w3)
+    s4 = per_token[h3 * w3 : h3 * w3 + h4 * w4].reshape(h4, w4)
+    s5 = per_token[h3 * w3 + h4 * w4 :].reshape(h5, w5)
+    pick = {'s3': s3, 's4': s4, 's5': s5}[level]
+    return pick.detach().cpu().numpy()
 
 
 def _draw_detections(ax, im: Image.Image, dets: dict, title: str, score_thr: float):
@@ -134,13 +147,13 @@ def main():
 
     _, base_dets = _run(base_model, base_post, x, orig)
     _, feed_dets = _run(feed_model, feed_post, x, orig)
-    heat = _s5_attention_heatmap(feed_model)
+    heat_s3 = _attention_heatmap(feed_model, 's3')
 
     gate = feed_model.decoder.decoder.gate_value
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     _draw_detections(axes[0], im, base_dets, 'Baseline', args.score_thr)
     _draw_detections(axes[1], im, feed_dets, f'Feedback (gate={gate:.3f})', args.score_thr)
-    _draw_heatmap(axes[2], im, heat, 'S5 feedback attention')
+    _draw_heatmap(axes[2], im, heat_s3, 'S3 feedback attention (small-object scale)')
     plt.tight_layout()
     plt.savefig(args.out, dpi=150, bbox_inches='tight')
     print(f'saved → {args.out}')

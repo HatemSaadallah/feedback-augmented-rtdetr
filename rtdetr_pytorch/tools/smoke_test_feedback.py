@@ -51,10 +51,20 @@ from src.zoo.rtdetr.feedback_module import (
 )
 
 
-def _dummy_backbone_feats(batch=1, input_size=320):
-    # Mimic PResNet [stride 8, 16, 32] outputs with channels [512, 1024, 2048].
-    # Using a smaller spatial size keeps this CPU-friendly.
+def _dummy_backbone_feats(batch=1, input_size=320, p2: bool = False):
+    """Mimic PResNet outputs at the requested pyramid depth.
+
+    Without P2 (default): 3 levels [S3,S4,S5] = strides [8,16,32], channels [512,1024,2048].
+    With P2: 4 levels [S2,S3,S4,S5] = strides [4,8,16,32], channels [256,512,1024,2048].
+    """
     s = input_size
+    if p2:
+        return [
+            torch.randn(batch, 256,  s // 4,  s // 4),
+            torch.randn(batch, 512,  s // 8,  s // 8),
+            torch.randn(batch, 1024, s // 16, s // 16),
+            torch.randn(batch, 2048, s // 32, s // 32),
+        ]
     return [
         torch.randn(batch, 512,  s // 8,  s // 8),
         torch.randn(batch, 1024, s // 16, s // 16),
@@ -119,11 +129,15 @@ def test_shapes_and_forward():
         if use_feedback:
             # Wrapper type check
             assert isinstance(transformer.decoder, FeedbackAugmentedDecoder)
-            # Attention weights stashed for visualization (400 S5 tokens? here 10*10=100)
+            # Attention weights stashed for visualization.
+            # Multi-level: L = H3*W3 + H4*W4 + H5*W5. For 320 input and
+            # strides [8,16,32]: 40*40 + 20*20 + 10*10 = 1600+400+100 = 2100.
             aw = transformer.decoder.feedback.last_attn_weights
             assert aw is not None, 'feedback did not stash attn weights'
-            assert aw.shape == (1, 100, 30), f'attn_w {aw.shape}'
-            print(f'  attn_weights stashed: shape={tuple(aw.shape)}')
+            expected_L = 40 * 40 + 20 * 20 + 10 * 10
+            assert aw.shape == (1, expected_L, 30), f'attn_w {aw.shape}'
+            print(f'  attn_weights stashed: shape={tuple(aw.shape)} '
+                  f'(S3:{40*40} + S4:{20*20} + S5:{10*10} = {expected_L})')
 
 
 def test_warmup_toggle_disables_feedback():
@@ -286,6 +300,51 @@ def test_end_to_end_with_criterion():
     assert with_grad == len(fb_params), 'some feedback params did not receive a gradient'
 
 
+def test_p2_four_level_forward():
+    """Verify the 4-level (S2+S3+S4+S5) architecture works end-to-end.
+
+    At input 320, levels are:
+        S2: 80x80 = 6400 tokens
+        S3: 40x40 = 1600 tokens
+        S4: 20x20 =  400 tokens
+        S5: 10x10 =  100 tokens
+    Total memory L = 8500 tokens.
+    """
+    torch.manual_seed(0)
+    feats = _dummy_backbone_feats(batch=1, input_size=320, p2=True)
+    encoder = HybridEncoder(
+        in_channels=[256, 512, 1024, 2048],
+        feat_strides=[4, 8, 16, 32],
+        use_encoder_idx=[3],
+        hidden_dim=256, nhead=8, dim_feedforward=512, num_encoder_layers=1,
+        eval_spatial_size=None,
+    )
+    transformer = RTDETRTransformer(
+        num_classes=80, hidden_dim=256, num_queries=50,
+        feat_channels=[256, 256, 256, 256], feat_strides=[4, 8, 16, 32],
+        num_levels=4, num_decoder_points=4, nhead=8,
+        num_decoder_layers=3, dim_feedforward=512,
+        num_denoising=0, eval_spatial_size=None,
+        use_feedback=True, feedback_layer_idx=0,
+        feedback_gate_init=-2.0, feedback_dim_feedforward=512,
+    )
+    encoder.eval(); transformer.eval()
+    with torch.no_grad():
+        enc_out = encoder(feats)
+        assert len(enc_out) == 4, f'expected 4 encoder outputs, got {len(enc_out)}'
+        assert enc_out[0].shape == (1, 256, 80, 80)  # S2
+        assert enc_out[1].shape == (1, 256, 40, 40)  # S3
+        assert enc_out[2].shape == (1, 256, 20, 20)  # S4
+        assert enc_out[3].shape == (1, 256, 10, 10)  # S5
+        out = transformer(enc_out)
+    assert out['pred_logits'].shape == (1, 50, 80)
+    assert out['pred_boxes'].shape == (1, 50, 4)
+    aw = transformer.decoder.feedback.last_attn_weights
+    expected_L = 80*80 + 40*40 + 20*20 + 10*10  # 8500
+    assert aw.shape == (1, expected_L, 50), f'attn_w {aw.shape}'
+    print(f'  4-level forward OK: enc shapes [80,40,20,10], memory={expected_L} tokens')
+
+
 def main():
     print('1) shapes + forward (use_feedback=False, True)')
     test_shapes_and_forward()
@@ -297,6 +356,8 @@ def main():
     test_backward_and_gate_grad()
     print('5) end-to-end with SetCriterion (fake COCO-style batch)')
     test_end_to_end_with_criterion()
+    print('6) P2 (4-level) architecture forward')
+    test_p2_four_level_forward()
     print('\nALL SMOKE TESTS PASSED')
 
 

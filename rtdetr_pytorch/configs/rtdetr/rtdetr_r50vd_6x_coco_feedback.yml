@@ -12,7 +12,7 @@ output_dir: ./output/rtdetr_r50vd_6x_coco_feedback
 RTDETRTransformer:
   use_feedback: True
   feedback_layer_idx: 0          # feedback fires after decoder layer index 0 (the first layer)
-  feedback_gate_init: -6.0       # sigmoid(-6) ≈ 0.0025 — feedback starts near off
+  feedback_gate_init: -2.0       # sigmoid(-2) ≈ 0.12 — feedback starts meaningful; gate escapes saturation within a real schedule
   feedback_dim_feedforward: 1024
   feedback_dropout: 0.0
 

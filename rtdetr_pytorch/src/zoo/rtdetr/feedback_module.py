@@ -1,25 +1,32 @@
 """Decoder-to-Encoder feedback for RT-DETR.
 
 After decoder layer 1 makes rough predictions, its query output is fed back to
-refine the S5 slice of the encoder memory via cross-attention. Subsequent
-decoder layers (2..N) then cross-attend over the refined memory.
+refine the encoder memory via cross-attention. Subsequent decoder layers
+(2..N) then cross-attend over the refined memory.
 
-Shapes (batch size B, hidden dim d=256, input 640x640):
-    s5_tokens : [B, H5*W5, d]   e.g. [B, 400, 256] for 20x20 S5
-    dec_out   : [B, num_queries, d]   e.g. [B, 300, 256]
-    refined   : [B, H5*W5, d]
+Two design knobs in v2 (post-v1 ablation showed feedback contributes ~0 at
+inference; gate had decayed too low):
 
-The module has a learnable scalar gate (init ≈ -6 so sigmoid(-6) ≈ 0.0025):
-feedback starts effectively disabled and opens as training progresses. A
-`disabled` flag (toggled externally by the solver during epoch warmup) skips
-the feedback entirely for the first few epochs.
+    * gate_floor — reparameterize the scalar gate as
+          gate_eff = floor + (1 - floor) * sigmoid(alpha)
+      so the effective contribution can never drop below `floor`. With
+      `floor=0.1, alpha_init=0.0` the gate starts at 0.55 (vs 0.12 in v1
+      with `alpha_init=-2.0` and no floor).
+    * level_mask — a list[bool] of length num_levels selecting which encoder
+      memory levels to refine. When set, cross-attention is computed on the
+      subset (saving compute and keeping the attention pattern uncontaminated
+      by tokens we are not going to write back to). Unmasked levels pass
+      through unchanged.
+
+Shapes (batch B, hidden d=256, input 640x640, 4 levels P2..S5):
+    memory  : [B, L, d]  L = sum(H_i * W_i)  e.g. 34000 for P2 input
+    dec_out : [B, num_queries, d]
+    refined : [B, L, d]   same shape; only active-level positions changed.
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from .utils import inverse_sigmoid
 
 
 class DecoderToEncoderFeedback(nn.Module):
@@ -28,7 +35,9 @@ class DecoderToEncoderFeedback(nn.Module):
                  nhead: int = 8,
                  dim_feedforward: int = 1024,
                  dropout: float = 0.0,
-                 gate_init: float = -6.0):
+                 gate_init: float = 0.0,
+                 gate_floor: float = 0.0,
+                 level_mask=None):
         super().__init__()
         self.d_model = d_model
         self.cross_attn = nn.MultiheadAttention(
@@ -44,43 +53,80 @@ class DecoderToEncoderFeedback(nn.Module):
         self.norm_ffn = nn.LayerNorm(d_model)
         self.gate = nn.Parameter(torch.tensor(float(gate_init)))
 
-        # Filled in forward; consumed by visualization. Not in state_dict.
-        self.last_attn_weights: torch.Tensor | None = None
+        assert 0.0 <= gate_floor < 1.0, f'gate_floor must be in [0, 1), got {gate_floor}'
+        self.gate_floor = float(gate_floor)
 
+        if level_mask is None:
+            self.level_mask = None
+        else:
+            mask = torch.tensor([bool(x) for x in level_mask], dtype=torch.bool)
+            assert mask.any(), 'level_mask must select at least one level'
+            self.register_buffer('level_mask', mask, persistent=False)
+
+        # Stashed for visualization. Not in state_dict.
+        self.last_attn_weights: torch.Tensor | None = None
         # Toggled by the solver during warmup; when True, forward is a no-op.
         self.disabled: bool = False
 
-    def forward(self, s5_tokens: torch.Tensor, dec_out: torch.Tensor) -> torch.Tensor:
+    @property
+    def effective_gate(self) -> torch.Tensor:
+        return self.gate_floor + (1.0 - self.gate_floor) * torch.sigmoid(self.gate)
+
+    def _active_indices(self, spatial_shapes, device):
+        offset = 0
+        chunks = []
+        mask_list = self.level_mask.tolist()
+        for li, (h_l, w_l) in enumerate(spatial_shapes):
+            n_l = int(h_l) * int(w_l)
+            if mask_list[li]:
+                chunks.append(torch.arange(offset, offset + n_l, device=device))
+            offset += n_l
+        return torch.cat(chunks) if chunks else None
+
+    def forward(self, memory: torch.Tensor, dec_out: torch.Tensor,
+                spatial_shapes=None) -> torch.Tensor:
         if self.disabled:
             self.last_attn_weights = None
-            return s5_tokens
+            return memory
+
+        if self.level_mask is not None and spatial_shapes is not None:
+            active_idx = self._active_indices(spatial_shapes, memory.device)
+            if active_idx is None or active_idx.numel() == 0:
+                return memory
+            sub_mem = memory.index_select(1, active_idx)
+        else:
+            active_idx = None
+            sub_mem = memory
 
         attn_out, attn_w = self.cross_attn(
-            query=s5_tokens, key=dec_out, value=dec_out,
+            query=sub_mem, key=dec_out, value=dec_out,
             need_weights=True, average_attn_weights=True,
         )
-        # Store for visualization (detached, no graph).
         self.last_attn_weights = attn_w.detach()
 
-        gate = torch.sigmoid(self.gate)
-        h = self.norm_attn(s5_tokens + gate * attn_out)
+        gate = self.effective_gate
+        h = self.norm_attn(sub_mem + gate * attn_out)
         h = self.norm_ffn(h + gate * self.ffn(h))
-        return h
+
+        if active_idx is None:
+            return h
+        out = memory.clone()
+        # Under AMP, `memory` is fp16 but LayerNorm output `h` is fp32;
+        # index_copy_ requires matching dtypes, so cast back.
+        out.index_copy_(1, active_idx, h.to(memory.dtype))
+        return out
 
 
 class FeedbackAugmentedDecoder(nn.Module):
-    """Wraps a TransformerDecoder, injecting S5 feedback after layer `feedback_layer_idx`.
-
-    Reuses the base decoder's layers (shared parameters). Mirrors the base
-    decoder's forward signature so it is a drop-in replacement.
+    """Wraps a TransformerDecoder, injecting memory feedback after layer
+    `feedback_layer_idx`. Reuses the base decoder's layers.
     """
 
     def __init__(self,
                  base_decoder: nn.Module,
                  feedback: DecoderToEncoderFeedback,
                  num_queries: int,
-                 feedback_layer_idx: int = 0,
-                 s5_level_idx: int = -1):
+                 feedback_layer_idx: int = 0):
         super().__init__()
         self.layers = base_decoder.layers
         self.num_layers = base_decoder.num_layers
@@ -90,7 +136,6 @@ class FeedbackAugmentedDecoder(nn.Module):
         self.feedback = feedback
         self.num_queries = num_queries
         self.feedback_layer_idx = feedback_layer_idx
-        self.s5_level_idx = s5_level_idx
 
     def forward(self,
                 tgt,
@@ -103,19 +148,12 @@ class FeedbackAugmentedDecoder(nn.Module):
                 query_pos_head,
                 attn_mask=None,
                 memory_mask=None):
+        from .utils import inverse_sigmoid  # local import; avoids circular at module load
+
         output = tgt
         dec_out_bboxes = []
         dec_out_logits = []
         ref_points_detach = F.sigmoid(ref_points_unact)
-
-        # Derive the S5 slice of `memory` from the spatial shapes. The last
-        # level (index -1) is S5 in the RT-DETR convention (strides 8,16,32).
-        s5_idx = (self.s5_level_idx
-                  if self.s5_level_idx >= 0
-                  else len(memory_spatial_shapes) + self.s5_level_idx)
-        s5_start = memory_level_start_index[s5_idx]
-        h5, w5 = memory_spatial_shapes[s5_idx]
-        s5_end = s5_start + h5 * w5
 
         for i, layer in enumerate(self.layers):
             ref_points_input = ref_points_detach.unsqueeze(2)
@@ -126,16 +164,11 @@ class FeedbackAugmentedDecoder(nn.Module):
                            attn_mask, memory_mask, query_pos_embed)
 
             if i == self.feedback_layer_idx:
-                # Use only the matched (non-denoising) query slice as K/V so
-                # the denoising prefix (training only) cannot leak GT info.
+                # Only matched (non-denoising) queries are used as K/V so the
+                # denoising prefix (train-only) cannot leak GT into memory.
                 matched_out = output[:, -self.num_queries:]
-                s5_tokens = memory[:, s5_start:s5_end]
-                refined = self.feedback(s5_tokens, matched_out)
-                # Splice refined S5 back into full memory; preserve the S3/S4
-                # prefix so subsequent deformable attention uses updated S5.
-                memory = torch.cat(
-                    [memory[:, :s5_start], refined, memory[:, s5_end:]], dim=1,
-                )
+                memory = self.feedback(memory, matched_out,
+                                       spatial_shapes=memory_spatial_shapes)
 
             inter_ref_bbox = F.sigmoid(bbox_head[i](output) + inverse_sigmoid(ref_points_detach))
 
@@ -162,18 +195,22 @@ class FeedbackAugmentedDecoder(nn.Module):
 
     @property
     def gate_value(self) -> float:
-        return float(torch.sigmoid(self.feedback.gate).item())
+        return float(self.feedback.effective_gate.item())
 
 
 def build_feedback_module(d_model: int = 256,
                           nhead: int = 8,
                           dim_feedforward: int = 1024,
                           dropout: float = 0.0,
-                          gate_init: float = -6.0) -> DecoderToEncoderFeedback:
+                          gate_init: float = 0.0,
+                          gate_floor: float = 0.0,
+                          level_mask=None) -> DecoderToEncoderFeedback:
     return DecoderToEncoderFeedback(
         d_model=d_model,
         nhead=nhead,
         dim_feedforward=dim_feedforward,
         dropout=dropout,
         gate_init=gate_init,
+        gate_floor=gate_floor,
+        level_mask=level_mask,
     )

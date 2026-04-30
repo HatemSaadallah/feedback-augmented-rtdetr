@@ -170,3 +170,35 @@ rtdetr_pytorch/output/
 rtdetr_pytorch/dataset/
 rtdetrv2_pytorch/output/
 rtdetrv2_pytorch/dataset/
+
+# === Project additions (Hatem) ===
+# Trained checkpoints (>100 MB; tracked separately, see README)
+*.pth
+*.bin
+
+# COCO dataset (huge)
+data/coco/
+data/
+
+# Compiled LaTeX artifacts (we keep main.pdf only)
+*.aux
+*.bbl
+*.blg
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+report/sections/*.aux
+report/main.aux
+report/main.log
+report/main.out
+
+# HPC stdout / stderr (raw — too large; summaries kept under v*_results/logs)
+v2_staging/
+
+# Editor / OS
+.DS_Store
+*.swp
+*~
