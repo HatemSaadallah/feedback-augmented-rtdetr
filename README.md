@@ -159,6 +159,71 @@ cd report && make
 
 ---
 
+## Limitations and future work
+
+We are upfront about what this study does and does not establish.
+
+### Limitations
+
+1. **Training schedule: 13 epochs instead of the standard 72.**
+   RT-DETR's published numbers are produced under the **6× COCO schedule
+   (~72 epochs)** trained from scratch. Due to compute constraints (a single
+   shared A100 MIG slice on the Bocconi `stud` partition, ~32 hours wall
+   clock for 13 epochs), we **finetuned from the public
+   `rtdetr_r50vd_6x_coco.pth` weights** for 13 effective epochs across four
+   chained SLURM jobs. As a consequence:
+   - Our absolute AP\_S (34.25 ON, 33.26 OFF) sits ~0.4 below the published
+     RT-DETR-R50 baseline of 34.7. This is **not** a fair head-to-head on
+     absolute AP\_S, and we don't claim a new state of the art.
+   - Our claim is the **+0.99 causal contribution** of the feedback module
+     under the same-checkpoint ablation, which is a within-run measurement
+     and is therefore valid even on a shorter schedule.
+   - A from-scratch 6× run, or a longer finetune, would likely lift both
+     ON and OFF numbers and could change the magnitude of the gap.
+
+2. **Single training seed.** All numbers are from one training run. A
+   multi-seed sweep would tighten the confidence interval on ΔAP\_S and
+   confirm whether +0.99 is reproducible vs. a lucky draw.
+
+3. **No floor-vs-mask isolation.** v2 changes both the gate parameterization
+   and the level mask simultaneously, so we cannot say from this experiment
+   alone whether either change is sufficient on its own. A 2×2 ablation
+   (with/without floor × with/without mask) would resolve this.
+
+4. **Latency cost is dominated by P2, not feedback.** The ~2× slowdown
+   relative to RT-DETR baseline (53.3 → 25.9 FPS) is essentially entirely
+   from adding the stride-4 feature level. The feedback module itself,
+   especially with the level mask, is a small fraction of inference cost.
+
+5. **No cross-dataset evaluation.** Results are on COCO val2017 only.
+   Datasets where small objects dominate (aerial imagery like xView or
+   DOTA, traffic surveillance) might show a larger or smaller gain.
+
+### Future work
+
+In rough order of how much they would extend the contribution:
+
+- **Run the full 6× schedule from scratch.** Confirm whether the +0.99
+  ΔAP\_S persists when both ON and OFF networks are properly trained for
+  72 epochs, and quantify the gap on a fair absolute-AP comparison.
+- **Multi-seed reproducibility study.** 3–5 seeds, report mean ± std on
+  ΔAP\_S.
+- **2×2 ablation: floor × mask.** Isolate the contribution of each of the
+  two structural changes.
+- **Feedback without P2.** Test whether the +0.99 gain transfers to the
+  original 3-level (P3–P5) configuration, which would recover the baseline
+  53 FPS while keeping the small-object gain.
+- **Cross-dataset evaluation.** Run on aerial / surveillance datasets where
+  small-object density is the binding constraint.
+- **Compose with query-side refinement.** Decoder-to-encoder feedback is
+  orthogonal to query-side iterative refinement (deformable cross-attention,
+  DAB-style anchor updates). The two could be combined.
+- **Multiple feedback passes.** We refine memory only once, after decoder
+  layer 0. Refining again after layer 2 (or feeding back at every layer)
+  is a natural extension.
+
+---
+
 ## What changed (v1 → v2)
 
 Three structural changes to `src/zoo/rtdetr/feedback_module.py`. **No new
