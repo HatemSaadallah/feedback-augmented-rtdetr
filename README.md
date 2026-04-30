@@ -1,35 +1,92 @@
 # Feedback-Augmented RT-DETR
+### A Cross-Attention Refinement Strategy for Enhanced Small-Object Detection
 
-> A cross-attention refinement strategy for enhanced small-object detection.
-> Computer Vision and Image Processing, Bocconi University.
+*Computer Vision and Image Processing — Bocconi University*
 
-This repository extends [RT-DETR](https://github.com/lyuwenyu/RT-DETR) with a
-**decoder-to-encoder feedback module** that refines encoder memory mid-decoding
-using preliminary predictions from the first decoder layer. Later decoder layers
-then attend over the refined memory.
+> 📄 **[Read the full 16-page report (PDF) →](report/main.pdf)**
 
-A first implementation (**v1**) trained cleanly but a same-checkpoint inference
-ablation showed the mechanism contributed nothing on small-object AP
-(ΔAP\_S = 0.00). We diagnosed gate collapse during training and re-implemented
-(**v2**) with a gate-floor reparameterization and a P2/P3-only level mask. The
-v2 retrain produces a measurable causal contribution of
-**ΔAP\_S = +0.99** on COCO val2017 @ 640.
+---
 
-The full write-up — math, multiple approaches, ablations, training details,
-gate dynamics, qualitative detections — is in
-[**`report/main.pdf`**](report/main.pdf) (16 pages).
+## TL;DR
+
+**Problem.** RT-DETR achieves real-time detection without NMS, but its small-object
+performance (AP\_S = 34.7 on COCO) lags behind larger-object scores. The encoder
+memory is computed once and never refined, even though decoder layers continuously
+extract more information about object hypotheses as they fire.
+
+**What we add.** A *decoder-to-encoder feedback* module: after the first decoder
+layer makes preliminary predictions, its query output is fed back as
+keys/values in a cross-attention pass that refines the encoder memory.
+Later decoder layers then attend over the refined memory.
+
+**The catch we hit (v1, the negative result).** A naive implementation produced
+the expected on-paper numbers, but a same-checkpoint inference ablation showed
+**ΔAP\_S = 0.00** — the mechanism contributed nothing causally. The
+sigmoid-parameterized gate had decayed to ≈ 0.12 during training, silencing
+the cross-attention output before it reached memory.
+
+**The fix (v2).** Two structural changes to the same module — both **zero new
+parameters**:
+
+1. **Gate-floor reparameterization** — `g_eff = floor + (1−floor)·σ(α)` with
+   floor = 0.1. The optimizer can no longer push the gate to zero; it is
+   structurally guaranteed to remain in the loop.
+2. **Level mask** — restrict the cross-attention to the P2 (stride 4) and P3
+   (stride 8) memory levels where small objects live. S4/S5 token positions
+   pass through byte-identical.
+
+**Result.**
+
+| Metric | v1 ablation Δ | **v2 ablation Δ** |
+|---|:-:|:-:|
+| AP   | +0.09 | **+0.57** |
+| **AP\_S** | **0.00** | **+0.99** |
+| AP\_M | +0.10 | **+0.42** |
+| AP\_L | +0.20 | **+0.50** |
+
+v2 turns the silent mechanism into a measurable one, with the causal
+contribution **largest on AP\_S** — exactly where the design hypothesis
+predicted. At higher inference resolution (800 × 800) v2 reaches AP\_S = 37.01.
+
+**Methodological takeaway.** When introducing a learnable additive component
+to an already-trained pipeline, an unconstrained sigmoid gate gives the
+optimizer an escape route to silence the new mechanism without paying a loss
+penalty. A floor on the gate is a one-line structural fix that closes that
+escape route — and in our setting, it is the difference between a positive
+and a null causal-effect ablation.
+
+---
+
+## Project context
+
+This repository extends [RT-DETR](https://github.com/lyuwenyu/RT-DETR) with the
+decoder-to-encoder feedback module described above. It documents both
+implementations end-to-end:
+
+- **v1** — the negative-result baseline. All artifacts (code, configs, ablation
+  JSONs, per-epoch trajectories, detection visualizations, training logs) are
+  preserved in [`v1_results/`](v1_results/).
+- **v2** — the positive result. Same artifacts in
+  [`v2_results/`](v2_results/) plus a [`v2_results/README.md`](v2_results/README.md)
+  with the headline numbers and exact code state.
+- **report/** — 16-page LaTeX write-up covering math, the multiple approaches
+  considered before settling on (gate floor + level mask), full ablation and
+  per-epoch tables, gate dynamics, qualitative detections, the full
+  `feedback_module.py` code listing in the appendix, and 15 references.
 
 ---
 
 ## Headline numbers
 
-Same-checkpoint ablation on COCO val2017 @ 640 (only `feedback.disabled` toggled):
+Same-checkpoint ablation on COCO val2017 @ 640 (only `feedback.disabled` toggled at inference):
 
 | Mode | AP | **AP\_S** | AP\_M | AP\_L |
 |---|---|---|---|---|
 | v2 ON  | 52.10 | **34.25** | 56.33 | 68.82 |
 | v2 OFF | 51.53 | 33.26 | 55.91 | 68.32 |
 | **Δ (causal)** | **+0.57** | **+0.99** | **+0.42** | **+0.50** |
+
+![v2 ablation: ON vs OFF and causal delta](report/figures/ablation_bars.png)
 
 For reference, **v1**'s same ablation gave ΔAP\_S = 0.00 — the mechanism was
 silent because the gate had decayed to ≈ 0.12 during training. v2 holds the
@@ -43,6 +100,62 @@ At higher inference resolution (800 × 800):
 |---|---|---|---|---|
 | 640 | 52.10 | 34.25 | 56.33 | 68.82 |
 | **800** | **52.31** | **37.01** | 56.35 | 67.04 |
+
+### Per-epoch AP\_S — v1 vs v2
+
+![Per-epoch AP_S, v1 vs v2](report/figures/learning_curves.png)
+
+v2 (blue) crosses v1's eventual final number (33.91) at epoch 8, four epochs
+before v1 reaches it. The chain-restart steps are visible as small dips at
+epochs 0, 1, and the link boundaries.
+
+### Gate dynamics
+
+![Gate trajectory](report/figures/gate_evolution.png)
+
+Starting at gₑff = 0.55 from α\_init = 0 and floor = 0.1, the v2 gate drifts
+gradually downward to ≈ 0.39 by epoch 12 — well above the 0.1 floor. v1's
+gate by this point of training was ≈ 0.12, **below** what we set as v2's
+floor; the v1 ablation showed exactly this silence.
+
+### Why the floor matters
+
+![Gate reparameterization](report/figures/gate_reparam.png)
+
+The plain sigmoid gate (dashed, v1) has its tail at zero — the optimizer can
+push α arbitrarily negative at no cost, which is what happened in v1. The
+floor reparameterization (solid, v2) bounds the gate below at `floor`,
+removing that escape route.
+
+### Qualitative detections (v2 final)
+
+<p align="center">
+  <img src="report/figures/viz_000000000139.png" width="49%" alt="val2017 #139"/>
+  <img src="report/figures/viz_000000000632.png" width="49%" alt="val2017 #632"/>
+</p>
+<p align="center">
+  <img src="report/figures/viz_000000001000.png" width="49%" alt="val2017 #1000"/>
+  <img src="report/figures/viz_000000002006.png" width="49%" alt="val2017 #2006"/>
+</p>
+
+---
+
+## How to read the report
+
+The full write-up lives at [`report/main.pdf`](report/main.pdf). Three ways to view it:
+
+1. **GitHub viewer** — click the [`report/main.pdf`](report/main.pdf) link above; GitHub renders PDFs in-browser (16 pages).
+2. **Direct download** — [right-click here to save](report/main.pdf).
+3. **Local clone** —
+   ```bash
+   git clone https://github.com/HatemSaadallah/feedback-augmented-rtdetr.git
+   xdg-open feedback-augmented-rtdetr/report/main.pdf   # or your PDF viewer
+   ```
+
+To rebuild the report from source (LaTeX install required):
+```bash
+cd report && make
+```
 
 ---
 
