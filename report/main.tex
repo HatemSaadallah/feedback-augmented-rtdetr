@@ -1,0 +1,96 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{parskip}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+
+\usepackage[table]{xcolor}
+\definecolor{linkblue}{HTML}{1f6feb}
+\definecolor{citegreen}{HTML}{2ca02c}
+\definecolor{codebg}{HTML}{f6f8fa}
+\definecolor{codecomment}{HTML}{6a737d}
+\definecolor{codekey}{HTML}{d73a49}
+\definecolor{codestr}{HTML}{032f62}
+\definecolor{codenum}{HTML}{005cc5}
+
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=citegreen,urlcolor=linkblue]{hyperref}
+
+\usepackage{listings}
+\lstdefinestyle{pylike}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  commentstyle=\color{codecomment}\itshape,
+  keywordstyle=\color{codekey}\bfseries,
+  stringstyle=\color{codestr},
+  numberstyle=\color{codecomment}\tiny,
+  showstringspaces=false,
+  breaklines=true,
+  numbers=left,
+  numbersep=6pt,
+  tabsize=4,
+  language=Python,
+  keepspaces=true,
+  frame=single,
+  rulecolor=\color{codecomment!30},
+  aboveskip=8pt, belowskip=8pt,
+}
+\lstset{style=pylike}
+
+\usepackage{authblk}
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.6ex plus 0.3ex minus 0.2ex}{0.8ex plus 0.2ex}
+\titlespacing*{\subsection}{0pt}{1.2ex plus 0.2ex minus 0.2ex}{0.6ex plus 0.2ex}
+
+\title{\textbf{Feedback-Augmented RT-DETR:} \\[0.2em] A Cross-Attention Refinement Strategy \\ for Enhanced Small-Object Detection}
+\author[1]{Hatem Saadallah}
+\author[1]{Nour Jennane}
+\affil[1]{Computer Vision and Image Processing, Bocconi University}
+\date{April 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\input{sections/01_introduction}
+
+\input{sections/02_background}
+
+\input{sections/03_method}
+
+\input{sections/04_experiments}
+
+\input{sections/05_results}
+
+\input{sections/06_discussion}
+
+\input{sections/07_conclusion}
+
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+\appendix
+\input{sections/99_appendix}
+
+\end{document}

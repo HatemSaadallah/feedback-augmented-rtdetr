@@ -1,0 +1,372 @@
+GPU 0: NVIDIA A100 80GB PCIe (UUID: GPU-4bcd6b75-1310-796a-c9af-9a065de7a4ca)
+GPU 1: NVIDIA A100 80GB PCIe (UUID: GPU-81433a3e-88e1-0245-f888-5e91d788efdf)
+  MIG 4g.40gb     Device  0: (UUID: MIG-bc14161e-184f-5e48-bb4f-52ed6d4ec161)
+GPU 2: NVIDIA A100 80GB PCIe (UUID: GPU-abf2d446-25d4-8423-89e2-2e446cb7b0ed)
+GPU 3: NVIDIA A100 80GB PCIe (UUID: GPU-c87ff541-18a5-b224-138a-6f19f2200e4f)
+
+=== ROW: feedback_off_640 ===
+=== full_ablation: label=feedback_off_640 ===
+config=configs/rtdetr/rtdetr_r50vd_hpc_feedback_p2.yml, ckpt=/home/3415496/rt-detr/output/rtdetr_r50vd_hpc_feedback_p2/checkpoint.pth
+feedback_off=True, resolution=None, latency_only=False
+Load PResNet50 state_dict
+feedback DISABLED at inference
+n_params: 49.08 M
+--- COCO eval ---
+loading annotations into memory...
+Done (t=0.47s)
+creating index...
+index created!
+Test:  [   0/1250]  eta: 0:25:19    time: 1.2153  data: 0.3432  max mem: 1429
+Test:  [  10/1250]  eta: 0:05:07    time: 0.2477  data: 0.0369  max mem: 1429
+Test:  [  20/1250]  eta: 0:04:18    time: 0.1597  data: 0.0064  max mem: 1429
+Test:  [  30/1250]  eta: 0:03:54    time: 0.1619  data: 0.0065  max mem: 1429
+Test:  [  40/1250]  eta: 0:03:45    time: 0.1614  data: 0.0066  max mem: 1429
+Test:  [  50/1250]  eta: 0:03:36    time: 0.1610  data: 0.0067  max mem: 1429
+Test:  [  60/1250]  eta: 0:03:31    time: 0.1613  data: 0.0068  max mem: 1429
+Test:  [  70/1250]  eta: 0:03:25    time: 0.1606  data: 0.0069  max mem: 1429
+Test:  [  80/1250]  eta: 0:03:24    time: 0.1634  data: 0.0068  max mem: 1429
+Test:  [  90/1250]  eta: 0:03:20    time: 0.1658  data: 0.0067  max mem: 1429
+Test:  [ 100/1250]  eta: 0:03:15    time: 0.1520  data: 0.0066  max mem: 1429
+Test:  [ 110/1250]  eta: 0:03:13    time: 0.1577  data: 0.0066  max mem: 1429
+Test:  [ 120/1250]  eta: 0:03:10    time: 0.1609  data: 0.0067  max mem: 1429
+Test:  [ 130/1250]  eta: 0:03:09    time: 0.1650  data: 0.0068  max mem: 1429
+Test:  [ 140/1250]  eta: 0:03:06    time: 0.1666  data: 0.0068  max mem: 1429
+Test:  [ 150/1250]  eta: 0:03:04    time: 0.1569  data: 0.0068  max mem: 1429
+Test:  [ 160/1250]  eta: 0:03:03    time: 0.1672  data: 0.0068  max mem: 1429
+Test:  [ 170/1250]  eta: 0:03:00    time: 0.1678  data: 0.0068  max mem: 1429
+Test:  [ 180/1250]  eta: 0:02:59    time: 0.1683  data: 0.0067  max mem: 1429
+Test:  [ 190/1250]  eta: 0:02:57    time: 0.1652  data: 0.0067  max mem: 1429
+Test:  [ 200/1250]  eta: 0:02:55    time: 0.1543  data: 0.0067  max mem: 1429
+Test:  [ 210/1250]  eta: 0:02:53    time: 0.1648  data: 0.0067  max mem: 1429
+Test:  [ 220/1250]  eta: 0:02:51    time: 0.1619  data: 0.0068  max mem: 1429
+Test:  [ 230/1250]  eta: 0:02:49    time: 0.1516  data: 0.0068  max mem: 1429
+Test:  [ 240/1250]  eta: 0:02:47    time: 0.1641  data: 0.0068  max mem: 1429
+Test:  [ 250/1250]  eta: 0:02:45    time: 0.1641  data: 0.0068  max mem: 1429
+Test:  [ 260/1250]  eta: 0:02:43    time: 0.1557  data: 0.0067  max mem: 1429
+Test:  [ 270/1250]  eta: 0:02:42    time: 0.1691  data: 0.0067  max mem: 1429
+Test:  [ 280/1250]  eta: 0:02:40    time: 0.1645  data: 0.0068  max mem: 1429
+Test:  [ 290/1250]  eta: 0:02:38    time: 0.1522  data: 0.0068  max mem: 1429
+Test:  [ 300/1250]  eta: 0:02:36    time: 0.1565  data: 0.0067  max mem: 1429
+Test:  [ 310/1250]  eta: 0:02:35    time: 0.1717  data: 0.0067  max mem: 1429
+Test:  [ 320/1250]  eta: 0:02:33    time: 0.1698  data: 0.0067  max mem: 1429
+Test:  [ 330/1250]  eta: 0:02:31    time: 0.1525  data: 0.0068  max mem: 1429
+Test:  [ 340/1250]  eta: 0:02:30    time: 0.1672  data: 0.0069  max mem: 1429
+Test:  [ 350/1250]  eta: 0:02:28    time: 0.1695  data: 0.0069  max mem: 1429
+Test:  [ 360/1250]  eta: 0:02:26    time: 0.1567  data: 0.0069  max mem: 1429
+Test:  [ 370/1250]  eta: 0:02:24    time: 0.1549  data: 0.0068  max mem: 1429
+Test:  [ 380/1250]  eta: 0:02:23    time: 0.1673  data: 0.0068  max mem: 1429
+Test:  [ 390/1250]  eta: 0:02:21    time: 0.1684  data: 0.0068  max mem: 1429
+Test:  [ 400/1250]  eta: 0:02:19    time: 0.1582  data: 0.0068  max mem: 1429
+Test:  [ 410/1250]  eta: 0:02:17    time: 0.1578  data: 0.0069  max mem: 1429
+Test:  [ 420/1250]  eta: 0:02:16    time: 0.1725  data: 0.0069  max mem: 1429
+Test:  [ 430/1250]  eta: 0:02:15    time: 0.1747  data: 0.0069  max mem: 1429
+Test:  [ 440/1250]  eta: 0:02:13    time: 0.1534  data: 0.0068  max mem: 1429
+Test:  [ 450/1250]  eta: 0:02:11    time: 0.1507  data: 0.0068  max mem: 1429
+Test:  [ 460/1250]  eta: 0:02:10    time: 0.1728  data: 0.0069  max mem: 1429
+Test:  [ 470/1250]  eta: 0:02:08    time: 0.1747  data: 0.0070  max mem: 1429
+Test:  [ 480/1250]  eta: 0:02:06    time: 0.1538  data: 0.0069  max mem: 1429
+Test:  [ 490/1250]  eta: 0:02:04    time: 0.1517  data: 0.0068  max mem: 1429
+Test:  [ 500/1250]  eta: 0:02:03    time: 0.1764  data: 0.0068  max mem: 1429
+Test:  [ 510/1250]  eta: 0:02:01    time: 0.1788  data: 0.0068  max mem: 1429
+Test:  [ 520/1250]  eta: 0:01:59    time: 0.1532  data: 0.0069  max mem: 1429
+Test:  [ 530/1250]  eta: 0:01:58    time: 0.1520  data: 0.0069  max mem: 1429
+Test:  [ 540/1250]  eta: 0:01:56    time: 0.1533  data: 0.0070  max mem: 1429
+Test:  [ 550/1250]  eta: 0:01:55    time: 0.1728  data: 0.0070  max mem: 1429
+Test:  [ 560/1250]  eta: 0:01:53    time: 0.1753  data: 0.0069  max mem: 1429
+Test:  [ 570/1250]  eta: 0:01:51    time: 0.1549  data: 0.0068  max mem: 1429
+Test:  [ 580/1250]  eta: 0:01:49    time: 0.1522  data: 0.0069  max mem: 1429
+Test:  [ 590/1250]  eta: 0:01:48    time: 0.1512  data: 0.0069  max mem: 1429
+Test:  [ 600/1250]  eta: 0:01:46    time: 0.1715  data: 0.0068  max mem: 1429
+Test:  [ 610/1250]  eta: 0:01:44    time: 0.1754  data: 0.0069  max mem: 1429
+Test:  [ 620/1250]  eta: 0:01:43    time: 0.1538  data: 0.0069  max mem: 1429
+Test:  [ 630/1250]  eta: 0:01:41    time: 0.1546  data: 0.0069  max mem: 1429
+Test:  [ 640/1250]  eta: 0:01:39    time: 0.1567  data: 0.0069  max mem: 1429
+Test:  [ 650/1250]  eta: 0:01:38    time: 0.1745  data: 0.0069  max mem: 1429
+Test:  [ 660/1250]  eta: 0:01:36    time: 0.1765  data: 0.0070  max mem: 1429
+Test:  [ 670/1250]  eta: 0:01:35    time: 0.1574  data: 0.0069  max mem: 1429
+Test:  [ 680/1250]  eta: 0:01:33    time: 0.1515  data: 0.0069  max mem: 1429
+Test:  [ 690/1250]  eta: 0:01:31    time: 0.1518  data: 0.0069  max mem: 1429
+Test:  [ 700/1250]  eta: 0:01:30    time: 0.1760  data: 0.0273  max mem: 1429
+Test:  [ 710/1250]  eta: 0:01:28    time: 0.1737  data: 0.0273  max mem: 1429
+Test:  [ 720/1250]  eta: 0:01:26    time: 0.1538  data: 0.0069  max mem: 1429
+Test:  [ 730/1250]  eta: 0:01:25    time: 0.1560  data: 0.0068  max mem: 1429
+Test:  [ 740/1250]  eta: 0:01:23    time: 0.1562  data: 0.0069  max mem: 1429
+Test:  [ 750/1250]  eta: 0:01:21    time: 0.1738  data: 0.0069  max mem: 1429
+Test:  [ 760/1250]  eta: 0:01:20    time: 0.1722  data: 0.0068  max mem: 1429
+Test:  [ 770/1250]  eta: 0:01:18    time: 0.1514  data: 0.0069  max mem: 1429
+Test:  [ 780/1250]  eta: 0:01:16    time: 0.1516  data: 0.0069  max mem: 1429
+Test:  [ 790/1250]  eta: 0:01:15    time: 0.1537  data: 0.0069  max mem: 1429
+Test:  [ 800/1250]  eta: 0:01:13    time: 0.1529  data: 0.0069  max mem: 1429
+Test:  [ 810/1250]  eta: 0:01:12    time: 0.1781  data: 0.0069  max mem: 1429
+Test:  [ 820/1250]  eta: 0:01:10    time: 0.1826  data: 0.0069  max mem: 1429
+Test:  [ 830/1250]  eta: 0:01:08    time: 0.1588  data: 0.0069  max mem: 1429
+Test:  [ 840/1250]  eta: 0:01:07    time: 0.1587  data: 0.0069  max mem: 1429
+Test:  [ 850/1250]  eta: 0:01:05    time: 0.1574  data: 0.0070  max mem: 1429
+Test:  [ 860/1250]  eta: 0:01:03    time: 0.1573  data: 0.0070  max mem: 1429
+Test:  [ 870/1250]  eta: 0:01:02    time: 0.1785  data: 0.0070  max mem: 1429
+Test:  [ 880/1250]  eta: 0:01:00    time: 0.1740  data: 0.0069  max mem: 1429
+Test:  [ 890/1250]  eta: 0:00:58    time: 0.1521  data: 0.0068  max mem: 1429
+Test:  [ 900/1250]  eta: 0:00:57    time: 0.1578  data: 0.0069  max mem: 1429
+Test:  [ 910/1250]  eta: 0:00:55    time: 0.1568  data: 0.0069  max mem: 1429
+Test:  [ 920/1250]  eta: 0:00:53    time: 0.1511  data: 0.0068  max mem: 1429
+Test:  [ 930/1250]  eta: 0:00:52    time: 0.1510  data: 0.0069  max mem: 1429
+Test:  [ 940/1250]  eta: 0:00:50    time: 0.1819  data: 0.0070  max mem: 1429
+Test:  [ 950/1250]  eta: 0:00:49    time: 0.1854  data: 0.0070  max mem: 1429
+Test:  [ 960/1250]  eta: 0:00:47    time: 0.1528  data: 0.0070  max mem: 1429
+Test:  [ 970/1250]  eta: 0:00:45    time: 0.1492  data: 0.0070  max mem: 1429
+Test:  [ 980/1250]  eta: 0:00:44    time: 0.1506  data: 0.0069  max mem: 1429
+Test:  [ 990/1250]  eta: 0:00:42    time: 0.1517  data: 0.0069  max mem: 1429
+Test:  [1000/1250]  eta: 0:00:40    time: 0.1796  data: 0.0069  max mem: 1429
+Test:  [1010/1250]  eta: 0:00:39    time: 0.1827  data: 0.0069  max mem: 1429
+Test:  [1020/1250]  eta: 0:00:37    time: 0.1588  data: 0.0070  max mem: 1429
+Test:  [1030/1250]  eta: 0:00:35    time: 0.1556  data: 0.0070  max mem: 1429
+Test:  [1040/1250]  eta: 0:00:34    time: 0.1547  data: 0.0070  max mem: 1429
+Test:  [1050/1250]  eta: 0:00:32    time: 0.1557  data: 0.0069  max mem: 1429
+Test:  [1060/1250]  eta: 0:00:30    time: 0.1551  data: 0.0070  max mem: 1429
+Test:  [1070/1250]  eta: 0:00:29    time: 0.1538  data: 0.0070  max mem: 1429
+Test:  [1080/1250]  eta: 0:00:27    time: 0.1811  data: 0.0070  max mem: 1429
+Test:  [1090/1250]  eta: 0:00:26    time: 0.1794  data: 0.0070  max mem: 1429
+Test:  [1100/1250]  eta: 0:00:24    time: 0.1519  data: 0.0070  max mem: 1429
+Test:  [1110/1250]  eta: 0:00:22    time: 0.1528  data: 0.0070  max mem: 1429
+Test:  [1120/1250]  eta: 0:00:21    time: 0.1522  data: 0.0069  max mem: 1429
+Test:  [1130/1250]  eta: 0:00:19    time: 0.1547  data: 0.0069  max mem: 1429
+Test:  [1140/1250]  eta: 0:00:17    time: 0.1558  data: 0.0069  max mem: 1429
+Test:  [1150/1250]  eta: 0:00:16    time: 0.1826  data: 0.0358  max mem: 1429
+Test:  [1160/1250]  eta: 0:00:14    time: 0.1802  data: 0.0359  max mem: 1429
+Test:  [1170/1250]  eta: 0:00:13    time: 0.1521  data: 0.0070  max mem: 1429
+Test:  [1180/1250]  eta: 0:00:11    time: 0.1559  data: 0.0070  max mem: 1429
+Test:  [1190/1250]  eta: 0:00:09    time: 0.1554  data: 0.0070  max mem: 1429
+Test:  [1200/1250]  eta: 0:00:08    time: 0.1528  data: 0.0069  max mem: 1429
+Test:  [1210/1250]  eta: 0:00:06    time: 0.1535  data: 0.0070  max mem: 1429
+Test:  [1220/1250]  eta: 0:00:04    time: 0.1528  data: 0.0071  max mem: 1429
+Test:  [1230/1250]  eta: 0:00:03    time: 0.1870  data: 0.0072  max mem: 1429
+Test:  [1240/1250]  eta: 0:00:01    time: 0.1870  data: 0.0071  max mem: 1429
+Test:  [1249/1250]  eta: 0:00:00    time: 0.1529  data: 0.0070  max mem: 1429
+Test: Total time: 0:03:24 (0.1635 s / it)
+Averaged stats: 
+Accumulating evaluation results...
+DONE (t=17.08s).
+IoU metric: bbox
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.519
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.702
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.565
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.339
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.562
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.648
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.717
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.539
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.759
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.882
+
+saved: /home/3415496/rt-detr/ablation_feedback_off_640.json
+
+=== summary ===
+  AP                        0.5191991549848217
+  AP_S                      0.3390750081470027
+  AP_M                      0.5618218892401041
+  AP_L                      0.686284609921591
+  n_params                  49082285
+
+=== ROW: feedback_p2_480 ===
+=== full_ablation: label=feedback_p2_480 ===
+config=configs/rtdetr/rtdetr_r50vd_hpc_feedback_p2.yml, ckpt=/home/3415496/rt-detr/output/rtdetr_r50vd_hpc_feedback_p2/checkpoint.pth
+feedback_off=False, resolution=[480, 480], latency_only=False
+Load PResNet50 state_dict
+n_params: 49.08 M
+--- COCO eval ---
+loading annotations into memory...
+Done (t=0.47s)
+creating index...
+index created!
+Test:  [   0/1250]  eta: 0:26:19    time: 1.2637  data: 0.3483  max mem: 2856
+Test:  [  10/1250]  eta: 0:05:10    time: 0.2508  data: 0.0371  max mem: 3002
+Test:  [  20/1250]  eta: 0:04:19    time: 0.1588  data: 0.0060  max mem: 3002
+Test:  [  30/1250]  eta: 0:03:55    time: 0.1609  data: 0.0061  max mem: 3002
+Test:  [  40/1250]  eta: 0:03:45    time: 0.1607  data: 0.0061  max mem: 3002
+Test:  [  50/1250]  eta: 0:03:36    time: 0.1605  data: 0.0062  max mem: 3002
+Test:  [  60/1250]  eta: 0:03:32    time: 0.1608  data: 0.0152  max mem: 3002
+Test:  [  70/1250]  eta: 0:03:25    time: 0.1602  data: 0.0152  max mem: 3002
+Test:  [  80/1250]  eta: 0:03:24    time: 0.1631  data: 0.0062  max mem: 3002
+Test:  [  90/1250]  eta: 0:03:20    time: 0.1652  data: 0.0061  max mem: 3002
+Test:  [ 100/1250]  eta: 0:03:17    time: 0.1601  data: 0.0060  max mem: 3002
+Test:  [ 110/1250]  eta: 0:03:13    time: 0.1567  data: 0.0061  max mem: 3002
+Test:  [ 120/1250]  eta: 0:03:10    time: 0.1509  data: 0.0062  max mem: 3002
+Test:  [ 130/1250]  eta: 0:03:09    time: 0.1639  data: 0.0062  max mem: 3002
+Test:  [ 140/1250]  eta: 0:03:06    time: 0.1655  data: 0.0063  max mem: 3002
+Test:  [ 150/1250]  eta: 0:03:04    time: 0.1636  data: 0.0062  max mem: 3002
+Test:  [ 160/1250]  eta: 0:03:02    time: 0.1628  data: 0.0062  max mem: 3002
+Test:  [ 170/1250]  eta: 0:02:59    time: 0.1556  data: 0.0062  max mem: 3002
+Test:  [ 180/1250]  eta: 0:02:58    time: 0.1675  data: 0.0061  max mem: 3002
+Test:  [ 190/1250]  eta: 0:02:56    time: 0.1645  data: 0.0062  max mem: 3002
+Test:  [ 200/1250]  eta: 0:02:54    time: 0.1533  data: 0.0063  max mem: 3002
+Test:  [ 210/1250]  eta: 0:02:52    time: 0.1658  data: 0.0064  max mem: 3002
+Test:  [ 220/1250]  eta: 0:02:50    time: 0.1629  data: 0.0063  max mem: 3002
+Test:  [ 230/1250]  eta: 0:02:48    time: 0.1504  data: 0.0063  max mem: 3002
+Test:  [ 240/1250]  eta: 0:02:46    time: 0.1601  data: 0.0063  max mem: 3002
+Test:  [ 250/1250]  eta: 0:02:44    time: 0.1604  data: 0.0062  max mem: 3002
+Test:  [ 260/1250]  eta: 0:02:42    time: 0.1544  data: 0.0061  max mem: 3002
+Test:  [ 270/1250]  eta: 0:02:41    time: 0.1697  data: 0.0061  max mem: 3002
+Test:  [ 280/1250]  eta: 0:02:39    time: 0.1659  data: 0.0062  max mem: 3002
+Test:  [ 290/1250]  eta: 0:02:37    time: 0.1516  data: 0.0062  max mem: 3002
+Test:  [ 300/1250]  eta: 0:02:36    time: 0.1695  data: 0.0062  max mem: 3002
+Test:  [ 310/1250]  eta: 0:02:34    time: 0.1718  data: 0.0062  max mem: 3002
+Test:  [ 320/1250]  eta: 0:02:32    time: 0.1564  data: 0.0062  max mem: 3002
+Test:  [ 330/1250]  eta: 0:02:30    time: 0.1512  data: 0.0062  max mem: 3002
+Test:  [ 340/1250]  eta: 0:02:29    time: 0.1650  data: 0.0062  max mem: 3002
+Test:  [ 350/1250]  eta: 0:02:27    time: 0.1676  data: 0.0062  max mem: 3002
+Test:  [ 360/1250]  eta: 0:02:25    time: 0.1548  data: 0.0062  max mem: 3002
+Test:  [ 370/1250]  eta: 0:02:23    time: 0.1532  data: 0.0062  max mem: 3002
+Test:  [ 380/1250]  eta: 0:02:22    time: 0.1654  data: 0.0061  max mem: 3002
+Test:  [ 390/1250]  eta: 0:02:20    time: 0.1663  data: 0.0061  max mem: 3002
+Test:  [ 400/1250]  eta: 0:02:18    time: 0.1564  data: 0.0062  max mem: 3002
+Test:  [ 410/1250]  eta: 0:02:17    time: 0.1711  data: 0.0062  max mem: 3002
+Test:  [ 420/1250]  eta: 0:02:15    time: 0.1672  data: 0.0062  max mem: 3002
+Test:  [ 430/1250]  eta: 0:02:14    time: 0.1542  data: 0.0063  max mem: 3002
+Test:  [ 440/1250]  eta: 0:02:12    time: 0.1519  data: 0.0063  max mem: 3002
+Test:  [ 450/1250]  eta: 0:02:10    time: 0.1486  data: 0.0062  max mem: 3002
+Test:  [ 460/1250]  eta: 0:02:09    time: 0.1693  data: 0.0062  max mem: 3002
+Test:  [ 470/1250]  eta: 0:02:07    time: 0.1714  data: 0.0062  max mem: 3002
+Test:  [ 480/1250]  eta: 0:02:05    time: 0.1519  data: 0.0062  max mem: 3002
+Test:  [ 490/1250]  eta: 0:02:03    time: 0.1496  data: 0.0062  max mem: 3002
+Test:  [ 500/1250]  eta: 0:02:02    time: 0.1744  data: 0.0063  max mem: 3002
+Test:  [ 510/1250]  eta: 0:02:00    time: 0.1766  data: 0.0062  max mem: 3002
+Test:  [ 520/1250]  eta: 0:01:58    time: 0.1509  data: 0.0063  max mem: 3002
+Test:  [ 530/1250]  eta: 0:01:57    time: 0.1506  data: 0.0064  max mem: 3002
+Test:  [ 540/1250]  eta: 0:01:55    time: 0.1720  data: 0.0062  max mem: 3002
+Test:  [ 550/1250]  eta: 0:01:54    time: 0.1705  data: 0.0062  max mem: 3002
+Test:  [ 560/1250]  eta: 0:01:52    time: 0.1530  data: 0.0063  max mem: 3002
+Test:  [ 570/1250]  eta: 0:01:50    time: 0.1535  data: 0.0062  max mem: 3002
+Test:  [ 580/1250]  eta: 0:01:48    time: 0.1504  data: 0.0061  max mem: 3002
+Test:  [ 590/1250]  eta: 0:01:47    time: 0.1682  data: 0.0061  max mem: 3002
+Test:  [ 600/1250]  eta: 0:01:45    time: 0.1705  data: 0.0061  max mem: 3002
+Test:  [ 610/1250]  eta: 0:01:44    time: 0.1555  data: 0.0063  max mem: 3002
+Test:  [ 620/1250]  eta: 0:01:42    time: 0.1522  data: 0.0064  max mem: 3002
+Test:  [ 630/1250]  eta: 0:01:40    time: 0.1528  data: 0.0063  max mem: 3002
+Test:  [ 640/1250]  eta: 0:01:39    time: 0.1783  data: 0.0061  max mem: 3002
+Test:  [ 650/1250]  eta: 0:01:37    time: 0.1765  data: 0.0061  max mem: 3002
+Test:  [ 660/1250]  eta: 0:01:35    time: 0.1555  data: 0.0061  max mem: 3002
+Test:  [ 670/1250]  eta: 0:01:34    time: 0.1564  data: 0.0061  max mem: 3002
+Test:  [ 680/1250]  eta: 0:01:32    time: 0.1501  data: 0.0061  max mem: 3002
+Test:  [ 690/1250]  eta: 0:01:31    time: 0.1721  data: 0.0062  max mem: 3002
+Test:  [ 700/1250]  eta: 0:01:29    time: 0.1762  data: 0.0062  max mem: 3002
+Test:  [ 710/1250]  eta: 0:01:27    time: 0.1522  data: 0.0062  max mem: 3002
+Test:  [ 720/1250]  eta: 0:01:26    time: 0.1523  data: 0.0062  max mem: 3002
+Test:  [ 730/1250]  eta: 0:01:24    time: 0.1542  data: 0.0062  max mem: 3002
+Test:  [ 740/1250]  eta: 0:01:22    time: 0.1546  data: 0.0062  max mem: 3002
+Test:  [ 750/1250]  eta: 0:01:21    time: 0.1722  data: 0.0061  max mem: 3002
+Test:  [ 760/1250]  eta: 0:01:19    time: 0.1712  data: 0.0061  max mem: 3002
+Test:  [ 770/1250]  eta: 0:01:17    time: 0.1504  data: 0.0062  max mem: 3002
+Test:  [ 780/1250]  eta: 0:01:16    time: 0.1501  data: 0.0063  max mem: 3002
+Test:  [ 790/1250]  eta: 0:01:14    time: 0.1522  data: 0.0063  max mem: 3002
+Test:  [ 800/1250]  eta: 0:01:12    time: 0.1514  data: 0.0064  max mem: 3002
+Test:  [ 810/1250]  eta: 0:01:11    time: 0.1770  data: 0.0063  max mem: 3002
+Test:  [ 820/1250]  eta: 0:01:09    time: 0.1813  data: 0.0062  max mem: 3002
+Test:  [ 830/1250]  eta: 0:01:08    time: 0.1571  data: 0.0061  max mem: 3002
+Test:  [ 840/1250]  eta: 0:01:06    time: 0.1569  data: 0.0061  max mem: 3002
+Test:  [ 850/1250]  eta: 0:01:04    time: 0.1550  data: 0.0062  max mem: 3002
+Test:  [ 860/1250]  eta: 0:01:03    time: 0.1552  data: 0.0062  max mem: 3002
+Test:  [ 870/1250]  eta: 0:01:01    time: 0.1746  data: 0.0061  max mem: 3002
+Test:  [ 880/1250]  eta: 0:01:00    time: 0.1700  data: 0.0062  max mem: 3002
+Test:  [ 890/1250]  eta: 0:00:58    time: 0.1501  data: 0.0063  max mem: 3002
+Test:  [ 900/1250]  eta: 0:00:56    time: 0.1561  data: 0.0063  max mem: 3002
+Test:  [ 910/1250]  eta: 0:00:55    time: 0.1551  data: 0.0063  max mem: 3002
+Test:  [ 920/1250]  eta: 0:00:53    time: 0.1492  data: 0.0062  max mem: 3002
+Test:  [ 930/1250]  eta: 0:00:51    time: 0.1737  data: 0.0062  max mem: 3002
+Test:  [ 940/1250]  eta: 0:00:50    time: 0.1796  data: 0.0063  max mem: 3002
+Test:  [ 950/1250]  eta: 0:00:48    time: 0.1587  data: 0.0062  max mem: 3002
+Test:  [ 960/1250]  eta: 0:00:46    time: 0.1510  data: 0.0062  max mem: 3002
+Test:  [ 970/1250]  eta: 0:00:45    time: 0.1472  data: 0.0062  max mem: 3002
+Test:  [ 980/1250]  eta: 0:00:43    time: 0.1490  data: 0.0062  max mem: 3002
+Test:  [ 990/1250]  eta: 0:00:42    time: 0.1501  data: 0.0062  max mem: 3002
+Test:  [1000/1250]  eta: 0:00:40    time: 0.1786  data: 0.0062  max mem: 3002
+Test:  [1010/1250]  eta: 0:00:38    time: 0.1815  data: 0.0062  max mem: 3002
+Test:  [1020/1250]  eta: 0:00:37    time: 0.1571  data: 0.0062  max mem: 3002
+Test:  [1030/1250]  eta: 0:00:35    time: 0.1540  data: 0.0063  max mem: 3002
+Test:  [1040/1250]  eta: 0:00:33    time: 0.1534  data: 0.0062  max mem: 3002
+Test:  [1050/1250]  eta: 0:00:32    time: 0.1543  data: 0.0062  max mem: 3002
+Test:  [1060/1250]  eta: 0:00:30    time: 0.1532  data: 0.0063  max mem: 3002
+Test:  [1070/1250]  eta: 0:00:29    time: 0.1798  data: 0.0064  max mem: 3002
+Test:  [1080/1250]  eta: 0:00:27    time: 0.1801  data: 0.0064  max mem: 3002
+Test:  [1090/1250]  eta: 0:00:25    time: 0.1510  data: 0.0063  max mem: 3002
+Test:  [1100/1250]  eta: 0:00:24    time: 0.1507  data: 0.0063  max mem: 3002
+Test:  [1110/1250]  eta: 0:00:22    time: 0.1511  data: 0.0063  max mem: 3002
+Test:  [1120/1250]  eta: 0:00:20    time: 0.1500  data: 0.0063  max mem: 3002
+Test:  [1130/1250]  eta: 0:00:19    time: 0.1527  data: 0.0063  max mem: 3002
+Test:  [1140/1250]  eta: 0:00:17    time: 0.1832  data: 0.0062  max mem: 3002
+Test:  [1150/1250]  eta: 0:00:16    time: 0.1815  data: 0.0062  max mem: 3002
+Test:  [1160/1250]  eta: 0:00:14    time: 0.1496  data: 0.0062  max mem: 3002
+Test:  [1170/1250]  eta: 0:00:12    time: 0.1502  data: 0.0062  max mem: 3002
+Test:  [1180/1250]  eta: 0:00:11    time: 0.1541  data: 0.0062  max mem: 3002
+Test:  [1190/1250]  eta: 0:00:09    time: 0.1533  data: 0.0062  max mem: 3002
+Test:  [1200/1250]  eta: 0:00:08    time: 0.1509  data: 0.0062  max mem: 3002
+Test:  [1210/1250]  eta: 0:00:06    time: 0.1514  data: 0.0063  max mem: 3002
+Test:  [1220/1250]  eta: 0:00:04    time: 0.1820  data: 0.0063  max mem: 3002
+Test:  [1230/1250]  eta: 0:00:03    time: 0.1870  data: 0.0063  max mem: 3002
+Test:  [1240/1250]  eta: 0:00:01    time: 0.1564  data: 0.0065  max mem: 3002
+Test:  [1249/1250]  eta: 0:00:00    time: 0.1526  data: 0.0065  max mem: 3002
+Test: Total time: 0:03:22 (0.1621 s / it)
+Averaged stats: 
+Accumulating evaluation results...
+DONE (t=18.47s).
+IoU metric: bbox
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.494
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.678
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.535
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.291
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.536
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.690
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.373
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.625
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.689
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.484
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.740
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.869
+
+saved: /home/3415496/rt-detr/ablation_feedback_p2_480.json
+
+=== summary ===
+  AP                        0.4936858314628544
+  AP_S                      0.2914113554786842
+  AP_M                      0.5358049097284803
+  AP_L                      0.6899519258567967
+  n_params                  49082285
+
+=== ROW: feedback_p2_latency_640 ===
+=== full_ablation: label=feedback_p2_latency_640 ===
+config=configs/rtdetr/rtdetr_r50vd_hpc_feedback_p2.yml, ckpt=/home/3415496/rt-detr/output/rtdetr_r50vd_hpc_feedback_p2/checkpoint.pth
+feedback_off=False, resolution=None, latency_only=True
+Load PResNet50 state_dict
+n_params: 49.08 M
+--- latency benchmark ---
+inference: 38.58 ms/img  (25.9 FPS)
+
+saved: /home/3415496/rt-detr/ablation_feedback_p2_latency_640.json
+
+=== summary ===
+  inference_ms_per_image    38.57641621492803
+  fps                       25.922573896665575
+  n_params                  49082285
+
+=== ROW: baseline_latency_640 ===
+=== full_ablation: label=baseline_latency_640 ===
+config=configs/rtdetr/rtdetr_r50vd_6x_coco.yml, ckpt=/home/3415496/rt-detr/weights/rtdetr_r50vd_6x_coco.pth
+feedback_off=False, resolution=None, latency_only=True
+Load PResNet50 state_dict
+n_params: 42.89 M
+--- latency benchmark ---
+inference: 18.77 ms/img  (53.3 FPS)
+
+saved: /home/3415496/rt-detr/ablation_baseline_latency_640.json
+
+=== summary ===
+  inference_ms_per_image    18.766239989781752
+  fps                       53.287179559917256
+  n_params                  42891372
+
+=== TRIMMED ABLATION DONE ===
+-rw-r--r-- 1 3415496 grp_hpcclusterstudentsbocconiusers  308 Apr 28 16:14 /home/3415496/rt-detr/ablation_baseline_latency_640.json
+-rw-r--r-- 1 3415496 grp_hpcclusterstudentsbocconiusers 3420 Apr 28 16:09 /home/3415496/rt-detr/ablation_feedback_off_640.json
+-rw-r--r-- 1 3415496 grp_hpcclusterstudentsbocconiusers 3455 Apr 28 16:13 /home/3415496/rt-detr/ablation_feedback_p2_480.json
+-rw-r--r-- 1 3415496 grp_hpcclusterstudentsbocconiusers  336 Apr 28 16:14 /home/3415496/rt-detr/ablation_feedback_p2_latency_640.json

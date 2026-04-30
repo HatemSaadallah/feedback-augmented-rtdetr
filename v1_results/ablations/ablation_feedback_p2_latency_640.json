@@ -1,0 +1,10 @@
+{
+  "label": "feedback_p2_latency_640",
+  "config": "configs/rtdetr/rtdetr_r50vd_hpc_feedback_p2.yml",
+  "ckpt": "/home/3415496/rt-detr/output/rtdetr_r50vd_hpc_feedback_p2/checkpoint.pth",
+  "feedback_off": false,
+  "resolution": null,
+  "n_params": 49082285,
+  "inference_ms_per_image": 38.57641621492803,
+  "fps": 25.922573896665575
+}

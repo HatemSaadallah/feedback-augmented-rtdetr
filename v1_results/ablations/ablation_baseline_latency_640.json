@@ -1,0 +1,10 @@
+{
+  "label": "baseline_latency_640",
+  "config": "configs/rtdetr/rtdetr_r50vd_6x_coco.yml",
+  "ckpt": "/home/3415496/rt-detr/weights/rtdetr_r50vd_6x_coco.pth",
+  "feedback_off": false,
+  "resolution": null,
+  "n_params": 42891372,
+  "inference_ms_per_image": 18.766239989781752,
+  "fps": 53.287179559917256
+}

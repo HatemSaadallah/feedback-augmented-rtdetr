@@ -1,0 +1,77 @@
+# P2 + 500q + multi-scale + multi-level feedback. 6 epochs per job, chained 2x = 12 ep.
+
+__include__: [
+  "../dataset/coco_detection.yml",
+  "../runtime.yml",
+  "./include/dataloader.yml",
+  "./include/optimizer.yml",
+  "./include/rtdetr_r50vd.yml",
+]
+
+output_dir: /home/3415496/rt-detr/output/rtdetr_r50vd_hpc_feedback_p2
+
+# === P2 stride-4 feature level ===
+PResNet:
+  return_idx: [0, 1, 2, 3]   # add stage 0 (stride 4, 256ch)
+
+HybridEncoder:
+  in_channels: [256, 512, 1024, 2048]   # 4 levels including P2
+  feat_strides: [4, 8, 16, 32]
+  use_encoder_idx: [3]                   # AIFI still on smallest map (S5)
+  hidden_dim: 256
+  nhead: 8
+  dim_feedforward: 1024
+  dropout: 0.0
+  enc_act: gelu
+  pe_temperature: 10000
+  expansion: 1.0
+  depth_mult: 1
+  act: silu
+  eval_spatial_size: [640, 640]
+
+RTDETRTransformer:
+  feat_channels: [256, 256, 256, 256]   # 4 levels, projected to hidden_dim
+  feat_strides: [4, 8, 16, 32]
+  num_levels: 4
+  num_queries: 500                       # 300 -> 500
+  hidden_dim: 256
+  num_decoder_layers: 6
+  num_denoising: 100
+  eval_idx: -1
+  eval_spatial_size: [640, 640]
+  use_feedback: True
+  feedback_layer_idx: 0
+  feedback_gate_init: -2.0
+  feedback_dim_feedforward: 1024
+  feedback_dropout: 0.0
+
+# multi-scale ON
+RTDETR:
+  multi_scale: [480, 512, 544, 576, 608, 640, 640, 640, 672, 704, 736, 768, 800]
+
+train_dataloader:
+  batch_size: 4         # bs=4 to fit 4-level memory in 40GB MIG
+  num_workers: 4
+val_dataloader:
+  batch_size: 4
+  num_workers: 4
+
+feedback_warmup_epochs: 1
+
+epoches: 4              # per job; chained twice = 12 total
+
+optimizer:
+  type: AdamW
+  params:
+    - {params: "backbone", lr: 0.0000005}
+    - {params: "decoder\\.feedback", lr: 0.000005}
+    - {params: "^(?=.*encoder(?=.*bias|.*norm.*weight)).*$", weight_decay: 0.}
+    - {params: "^(?!.*feedback)(?=.*decoder(?=.*bias|.*norm.*weight)).*$", weight_decay: 0.}
+  lr: 0.000005
+  betas: [0.9, 0.999]
+  weight_decay: 0.0001
+
+lr_scheduler:
+  type: MultiStepLR
+  milestones: [9]      # decay at epoch 9 (3rd epoch of second job)
+  gamma: 0.1

@@ -1,0 +1,20 @@
+staged: 118287 train
+GPU 0: NVIDIA A100 80GB PCIe (UUID: GPU-3538a582-d700-7296-8770-c64be76db22b)
+GPU 1: NVIDIA A100 80GB PCIe (UUID: GPU-efb2485f-64f6-eb3f-921d-b9323c5f90b3)
+GPU 2: NVIDIA A100 80GB PCIe (UUID: GPU-4d89d747-5c2d-5694-6022-d82e6e2f4f9c)
+GPU 3: NVIDIA A100 80GB PCIe (UUID: GPU-5a87b19d-461f-0679-89d0-99a7c964ef22)
+  MIG 4g.40gb     Device  0: (UUID: MIG-324bd8a1-05f3-5c4a-815a-98e2629d7b3c)
+=== resuming from /home/3415496/rt-detr/output/rtdetr_r50vd_hpc_feedback_p2/checkpoint.pth ===
+Not init distributed mode.
+Start training
+Load PResNet50 state_dict
+Initial lr:  [5e-06, 5e-05, 5e-05, 5e-05, 5e-05]
+Resume checkpoint from /home/3415496/rt-detr/output/rtdetr_r50vd_hpc_feedback_p2/checkpoint.pth
+Loading last_epoch
+Loading model.state_dict
+Loading ema.state_dict
+Loading optimizer.state_dict
+Loading lr_scheduler.state_dict
+Loading scaler.state_dict
+training exit=1
+last completed epoch: 0 (target 12)

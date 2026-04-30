@@ -1,0 +1,123 @@
+\section{Method}
+\label{sec:method}
+
+\subsection{Decoder-to-Encoder Feedback: forward pass}
+\label{sec:method-forward}
+
+The standard RT-DETR decoder iterates:
+\begin{equation*}
+    \text{for } i = 1\ldots L: \qquad t^{(i)} = \mathrm{Layer}_i\bigl(t^{(i-1)},\, m,\, \hat p^{(i-1)}\bigr),
+\end{equation*}
+where $t^{(i)}$ are decoder query embeddings at layer $i$, $m \in \mathbb{R}^{B\times L\times d}$ is the encoder memory, and $\hat p^{(i)}$ are reference anchors refined per layer. The memory $m$ is fixed throughout.
+
+We modify this loop with a feedback step inserted after layer 1:
+\begin{equation}
+    m \leftarrow \mathrm{Feedback}\bigl(m,\; t^{(1)}_{\mathrm{matched}}\bigr),
+    \label{eq:feedback-step}
+\end{equation}
+applied \emph{in place} of the original memory for layers $2 \ldots L$. The argument $t^{(1)}_{\mathrm{matched}}$ is the slice of decoder outputs corresponding to matched (non-denoising) queries; this is critical during training, when contrastive denoising queries~\cite{zhang2023dino} are concatenated to the matched queries and would otherwise leak ground-truth identity into the encoder memory.
+
+The feedback module itself is a single cross-attention block with a residual gate and a feed-forward refinement:
+\begin{align}
+    \mathrm{attn} &= \mathrm{MHA}\bigl(Q{=}m,\; K{=}V{=}t^{(1)}_{\mathrm{matched}}\bigr), \\
+    m' &= \mathrm{LN}\bigl(m + g_{\mathrm{eff}} \cdot \mathrm{attn}\bigr), \\
+    m'' &= \mathrm{LN}\bigl(m' + g_{\mathrm{eff}} \cdot \mathrm{FFN}(m')\bigr),
+    \label{eq:feedback-module}
+\end{align}
+where $\mathrm{MHA}$ is a standard multi-head attention block, $\mathrm{FFN}$ is a two-layer Linear-GELU-Linear block, $\mathrm{LN}$ is LayerNorm, and $g_{\mathrm{eff}} \in (0, 1)$ is a learnable scalar gate (Section~\ref{sec:method-gate}). The shapes are unchanged: $m, m', m'' \in \mathbb{R}^{B\times L\times d}$.
+
+The mechanism is intentionally minimal --- one cross-attention block, one FFN, one scalar gate. The key design choice is the gate: as $g_{\mathrm{eff}} \to 0$ the module becomes a no-op; as $g_{\mathrm{eff}} \to 1$ the refinement dominates. The optimizer chooses where on this continuum to operate.
+
+\subsection{The first attempt (v1) and the negative result}
+\label{sec:method-v1}
+
+In our initial implementation (v1), the gate was a plain reparameterization of a learnable scalar $\alpha$:
+\begin{equation}
+    g_{\mathrm{eff}}^{(\text{v1})} = \sigma(\alpha), \qquad \alpha_{\mathrm{init}} = -2 \;\Rightarrow\; g_{\mathrm{eff}} \approx 0.12 \text{ at start}.
+\end{equation}
+The argument was that a low initial gate would let the rest of the decoder train undisturbed for the first few epochs while the feedback module learns useful weights, after which the gate could rise.
+
+What happened: the gate did not rise. Across 12 training epochs it drifted slowly downward (from $0.12$ to ${\approx}0.10$). At convergence, a same-checkpoint ablation that toggles \texttt{feedback.disabled = True} at inference showed:
+\begin{equation*}
+    \mathrm{AP}_S(\text{v1 ON}) = 33.91, \qquad \mathrm{AP}_S(\text{v1 OFF}) = 33.91, \qquad \Delta = 0.00.
+\end{equation*}
+The same null result appeared on $\mathrm{AP}, \mathrm{AP}_M, \mathrm{AP}_L$. The mechanism was statistically silent.
+
+Two diagnoses are consistent with this:
+\begin{enumerate}
+    \item \textbf{Optimizer escape route.} A plain $\sigma(\alpha)$ gate has gradient $\sigma'(\alpha) = \sigma(\alpha)(1-\sigma(\alpha))$ which goes to zero as $\alpha \to -\infty$. If the rest of the network can compensate for the feedback signal, there is no penalty for the optimizer to push $\alpha$ further negative; the gate has nothing pulling it back up.
+    \item \textbf{Diluted signal.} v1 applies the feedback to all four pyramid levels equally. The 25,600 P2 tokens (75\% of memory) get the same per-token treatment as the 400 P5 tokens. The cross-attention pattern has to be useful for both regimes simultaneously, which is hard.
+\end{enumerate}
+
+\subsection{The fix (v2): gate floor and level mask}
+\label{sec:method-gate}
+
+We propose two changes, both purely structural, both adding zero new parameters.
+
+\paragraph{(F1) Gate floor reparameterization.} Replace the plain sigmoid with
+\begin{equation}
+    g_{\mathrm{eff}} = \mathrm{floor} + (1 - \mathrm{floor}) \cdot \sigma(\alpha), \qquad \mathrm{floor} \in [0, 1).
+    \label{eq:gate-floor}
+\end{equation}
+The effect on the curve $g_{\mathrm{eff}}(\alpha)$ is shown in Figure~\ref{fig:gate-reparam}. With $\mathrm{floor} = 0.1$ and $\alpha_{\mathrm{init}} = 0$, the effective gate begins at $0.55$ and is bounded below by $0.1$ regardless of optimizer pressure. There is no escape route: the optimizer can shape the gate's response (including driving $\sigma(\alpha) \to 0$, which is fine), but the floor guarantees the feedback is always in the loop at training and inference.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.78\textwidth]{figures/gate_reparam.pdf}
+    \caption{Gate reparameterization. The plain sigmoid (floor = 0, dashed) has its tail at zero; v1's $\alpha=-2$ initialization sits at $g_{\mathrm{eff}} \approx 0.12$ near the saturating tail. The v2 reparameterization (floor = 0.1, solid) is bounded below; with $\alpha=0$ initialization, $g_{\mathrm{eff}} = 0.55$ at the start of training.}
+    \label{fig:gate-reparam}
+\end{figure}
+
+\paragraph{(F2) Level mask.} Restrict the cross-attention in Equation~\ref{eq:feedback-module} to a subset of the encoder memory. Concretely, given a Boolean mask $\mathbf{b} \in \{0, 1\}^{N_{\mathrm{lvl}}}$, let $\mathcal{I}(\mathbf{b}) \subset \{0, \ldots, L-1\}$ be the union of token indices corresponding to active levels. The forward pass becomes
+\begin{align*}
+    m_{\mathrm{sub}} &= m[:, \mathcal{I}(\mathbf{b})], \\
+    m_{\mathrm{sub}}' &= \mathrm{FeedbackBlock}\bigl(m_{\mathrm{sub}},\, t^{(1)}_{\mathrm{matched}}\bigr), \\
+    m'[:, j] &= \begin{cases}
+        m_{\mathrm{sub}}'[:, \mathcal{I}^{-1}(j)] & j \in \mathcal{I}(\mathbf{b}), \\
+        m[:, j] & \text{otherwise.}
+    \end{cases}
+\end{align*}
+With $\mathbf{b} = (1, 1, 0, 0)$ corresponding to (P2, P3, P4, P5), only the P2 and P3 slices are touched; the P4 and P5 token positions in the refined memory are byte-identical to the input. Cross-attention is computed once on the smaller subset, saving compute proportional to $1 - |\mathcal{I}(\mathbf{b})| / L$.
+
+The hypothesis: small objects benefit from refining stride-4/8 features; refining stride-32 dilutes the gradient signal for the metric we want to move. This is the same logic that motivates including P2 in the first place~\cite{lin2017fpn}; we extend it to the feedback path.
+
+\subsection{Multiple approaches considered}
+\label{sec:method-alternatives}
+
+For completeness, Table~\ref{tab:approaches} summarizes the design space we explored before settling on (F1)+(F2). All approaches share the architectural skeleton of Section~\ref{sec:method-forward}; they differ only in how the gate is parameterized and which memory levels are refined.
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\linewidth}{lXXc}
+    \toprule
+    \textbf{Variant} & \textbf{Gate} & \textbf{Levels refined} & $\boldsymbol{\Delta\mathrm{AP}_S}$ \\
+    \midrule
+    A: S5-only            & $\sigma(\alpha)$, $\alpha_{\mathrm{init}}=-2$ & P5 only (400 / 8400 tokens) & not run \\
+    B: All levels (\textbf{v1}) & $\sigma(\alpha)$, $\alpha_{\mathrm{init}}=-2$ & P3, P4, P5 & $0.00$ \\
+    C: Gate freeze        & $\sigma(\alpha)$, frozen for $N$ epochs       & all          & not run \\
+    D: Higher init only   & $\sigma(\alpha)$, $\alpha_{\mathrm{init}}=0$  & all          & not run \\
+    E: Floor + mask (\textbf{v2}) & $\mathrm{floor} + (1{-}\mathrm{floor})\sigma(\alpha)$, $\alpha_{\mathrm{init}}=0$, $\mathrm{floor}=0.1$ & P2, P3 & $\boldsymbol{+0.99}$ \\
+    \bottomrule
+\end{tabularx}
+\caption{Design alternatives considered. A is the original sketch (rejected because P5 has only 400 of 8400 tokens, so the refinement budget is too small to matter). B is what we implemented as v1 and produced the negative result. C and D were considered as targeted patches to v1 but rejected: C requires a solver-level hook that is brittle to chain-link restarts; D fixes initialization but does not prevent the gate from drifting downward during training. E is what we implemented as v2.}
+\label{tab:approaches}
+\end{table}
+
+\subsection{Implementation details}
+\label{sec:method-impl}
+
+\paragraph{Module.} The feedback module is implemented as a standalone \texttt{nn.Module} with the cross-attention, LayerNorms, FFN, and scalar gate parameter $\alpha$. The level mask is a registered Boolean buffer; the active-index list is rebuilt per forward pass from the spatial-shapes argument (which RT-DETR's decoder forward already passes through). The disable toggle (Listing~\ref{lst:toggle}) is a single Python attribute used by the inference-time ablation.
+
+\begin{lstlisting}[caption={Disable toggle for the same-checkpoint ablation: \texttt{set\_feedback\_disabled(True)} bypasses Equation~\ref{eq:feedback-module}, returning the input memory unchanged.}, label={lst:toggle}]
+def forward(self, memory, dec_out, spatial_shapes=None):
+    if self.disabled:
+        self.last_attn_weights = None
+        return memory
+    # ... otherwise run cross-attention, gate-mix, FFN, write back
+\end{lstlisting}
+
+\paragraph{AMP dtype.} Under PyTorch automatic mixed precision (AMP), the encoder memory enters the feedback module as \texttt{float16} but the LayerNorm output is \texttt{float32}. The straightforward \texttt{out.index\_copy\_(1, idx, h)} call then crashes with a dtype mismatch. The fix is one cast: \texttt{out.index\_copy\_(1, idx, h.to(memory.dtype))}. We discovered this the hard way (a chain-link crash at the start of epoch 1 in v2's first run) and document it because it is a footgun specific to the level-mask path.
+
+\paragraph{Parameter cost.} The gate is a single \texttt{nn.Parameter} (1 scalar). The level mask is a buffer (no gradient). v2 has the same parameter count as v1 (49.08\,M); both add ${\approx}6.2\,\mathrm{M}$ over the RT-DETR-R50 baseline (42.9\,M), almost entirely from adding the P2 input projection at stride 4.

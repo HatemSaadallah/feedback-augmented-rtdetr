@@ -1,140 +1,213 @@
-English | [简体中文](README_cn.md)
+# Feedback-Augmented RT-DETR
 
+> A cross-attention refinement strategy for enhanced small-object detection.
+> Computer Vision and Image Processing, Bocconi University.
 
-<h2 align="center">RT-DETR: DETRs Beat YOLOs on Real-time Object Detection</h2>
-<p align="center">
-    <!-- <a href="https://github.com/lyuwenyu/RT-DETR/blob/main/LICENSE">
-        <img alt="license" src="https://img.shields.io/badge/LICENSE-Apache%202.0-blue">
-    </a> -->
-    <a href="https://github.com/lyuwenyu/RT-DETR/blob/main/LICENSE">
-        <img alt="license" src="https://img.shields.io/github/license/lyuwenyu/RT-DETR">
-    </a>
-    <a href="https://github.com/lyuwenyu/RT-DETR/pulls">
-        <img alt="prs" src="https://img.shields.io/github/issues-pr/lyuwenyu/RT-DETR">
-    </a>
-    <a href="https://github.com/lyuwenyu/RT-DETR/issues">
-        <img alt="issues" src="https://img.shields.io/github/issues/lyuwenyu/RT-DETR?color=pink">
-    </a>
-    <a href="https://github.com/lyuwenyu/RT-DETR">
-        <img alt="issues" src="https://img.shields.io/github/stars/lyuwenyu/RT-DETR">
-    </a>
-    <a href="https://arxiv.org/abs/2304.08069">
-        <img alt="arXiv" src="https://img.shields.io/badge/arXiv-2304.08069-red">
-    </a>
-    <a href="mailto: lyuwenyu@foxmail.com">
-        <img alt="emal" src="https://img.shields.io/badge/contact_me-email-yellow">
-    </a>
-</p>
+This repository extends [RT-DETR](https://github.com/lyuwenyu/RT-DETR) with a
+**decoder-to-encoder feedback module** that refines encoder memory mid-decoding
+using preliminary predictions from the first decoder layer. Later decoder layers
+then attend over the refined memory.
+
+A first implementation (**v1**) trained cleanly but a same-checkpoint inference
+ablation showed the mechanism contributed nothing on small-object AP
+(ΔAP\_S = 0.00). We diagnosed gate collapse during training and re-implemented
+(**v2**) with a gate-floor reparameterization and a P2/P3-only level mask. The
+v2 retrain produces a measurable causal contribution of
+**ΔAP\_S = +0.99** on COCO val2017 @ 640.
+
+The full write-up — math, multiple approaches, ablations, training details,
+gate dynamics, qualitative detections — is in
+[**`report/main.pdf`**](report/main.pdf) (16 pages).
 
 ---
 
+## Headline numbers
 
-This is the official implementation of papers 
-- [DETRs Beat YOLOs on Real-time Object Detection](https://arxiv.org/abs/2304.08069)
-- [RT-DETRv2: Improved Baseline with Bag-of-Freebies for Real-Time Detection Transformer](https://arxiv.org/abs/2407.17140)
+Same-checkpoint ablation on COCO val2017 @ 640 (only `feedback.disabled` toggled):
 
+| Mode | AP | **AP\_S** | AP\_M | AP\_L |
+|---|---|---|---|---|
+| v2 ON  | 52.10 | **34.25** | 56.33 | 68.82 |
+| v2 OFF | 51.53 | 33.26 | 55.91 | 68.32 |
+| **Δ (causal)** | **+0.57** | **+0.99** | **+0.42** | **+0.50** |
 
-<details>
-<summary>Fig</summary>
+For reference, **v1**'s same ablation gave ΔAP\_S = 0.00 — the mechanism was
+silent because the gate had decayed to ≈ 0.12 during training. v2 holds the
+gate at ≈ 0.39 throughout training via the floor reparameterization. **Both
+versions have identical parameter count (49.08 M); the v2 changes are
+zero-parameter.**
 
-<table><tr>
-<td><img src=https://github.com/lyuwenyu/RT-DETR/assets/77494834/0ede1dc1-a854-43b6-9986-cf9090f11a61 border=0 width=500></td>
-<td><img src=https://github.com/user-attachments/assets/437877e9-1d4f-4d30-85e8-aafacfa0ec56 border=0 width=500></td>
-</tr></table>
-</details>
+At higher inference resolution (800 × 800):
 
+| Resolution | AP | AP\_S | AP\_M | AP\_L |
+|---|---|---|---|---|
+| 640 | 52.10 | 34.25 | 56.33 | 68.82 |
+| **800** | **52.31** | **37.01** | 56.35 | 67.04 |
 
-## 🚀 Updates
-- \[2025.11.18\] Release the **newest** member of the RT-DETR family: [RT-DETRv4:Painlessly Furthering Real-Time Object Detection with Vision Foundation Models](https://github.com/RT-DETRs/RT-DETRv4).
-By harnessing the rapidly evolving capabilities of Vision Foundation Models (VFMs), we boost lightweight detectors and, without incurring any extra inference latency, significantly improve the performance of the full-size model.
-- \[2024.11.28\] Add torch tool for parameters and flops statistics. see [run_profile.py](./rtdetrv2_pytorch/tools/run_profile.py)
-- \[2024.10.10\] Add sliced inference support for small object detecion. [#468](https://github.com/lyuwenyu/RT-DETR/pull/468)
-- \[2024.09.23\] Add ✅[Regnet and DLA34](https://github.com/lyuwenyu/RT-DETR/tree/main/rtdetr_pytorch) for RTDETR.
-- \[2024.08.27\] Add hubconf.py file to support torch hub.
-- \[2024.08.22\] Improve the performance of ✅ [RT-DETRv2-S](./rtdetrv2_pytorch/) to 48.1 mAP (<font color=green>+1.6</font> compared to RT-DETR-R18).
-- \[2024.07.24\] Release ✅ [RT-DETRv2](./rtdetrv2_pytorch/)!
-- \[2024.02.27\] Our work has been accepted to CVPR 2024!
-- \[2024.01.23\] Fix difference on data augmentation with paper in rtdetr_pytorch [#84](https://github.com/lyuwenyu/RT-DETR/commit/5dc64138e439247b4e707dd6cebfe19d8d77f5b1).
-- \[2023.11.07\] Add pytorch ✅ *rtdetr_r34vd* for requests [#107](https://github.com/lyuwenyu/RT-DETR/issues/107), [#114](https://github.com/lyuwenyu/RT-DETR/issues/114).
-- \[2023.11.05\] Upgrade the logic of `remap_mscoco_category` to facilitate training of custom datasets, see detils in [*Train custom data*](./rtdetr_pytorch/) part. [#81](https://github.com/lyuwenyu/RT-DETR/commit/95fc522fd7cf26c64ffd2ad0c622c392d29a9ebf).
-- \[2023.10.23\] Add [*discussion for deployments*](https://github.com/lyuwenyu/RT-DETR/issues/95), supported onnxruntime, TensorRT, openVINO.
-- \[2023.10.12\] Add tuning code for pytorch version, now you can tuning rtdetr based on pretrained weights.
-- \[2023.09.19\] Upload ✅ [*pytorch weights*](https://github.com/lyuwenyu/RT-DETR/issues/42) convert from paddle version.
-- \[2023.08.24] Release RT-DETR-R18 pretrained models on objects365. *49.2 mAP* and *217 FPS*.
-- \[2023.08.22\] Upload ✅ [*rtdetr_pytorch*](./rtdetr_pytorch/) source code. Please enjoy it!
-- \[2023.08.15\] Release RT-DETR-R101 pretrained models on objects365. *56.2 mAP* and *74 FPS*.
-- \[2023.07.30\] Release RT-DETR-R50 pretrained models on objects365. *55.3 mAP* and *108 FPS*.
-- \[2023.07.28\] Fix some bugs, and add some comments. [1](https://github.com/lyuwenyu/RT-DETR/pull/14), [2](https://github.com/lyuwenyu/RT-DETR/commit/3b5cbcf8ae3b907e6b8bb65498a6be7c6736eabc).
-- \[2023.07.13\] Upload ✅ [*training logs on coco*](https://github.com/lyuwenyu/RT-DETR/issues/8).
-- \[2023.05.17\] Release RT-DETR-R18, RT-DETR-R34, RT-DETR-R50-m（example for scaled).
-- \[2023.04.17\] Release RT-DETR-R50, RT-DETR-R101, RT-DETR-L, RT-DETR-X.
+---
 
-## 📣 News
-- RTDETR and RTDETRv2 are now available in Hugging Face Transformers. [#413](https://github.com/lyuwenyu/RT-DETR/issues/413), [#549](https://github.com/lyuwenyu/RT-DETR/issues/549)
-- RTDETR is now available in [ultralytics/ultralytics](https://docs.ultralytics.com/zh/models/rtdetr/).
+## What changed (v1 → v2)
 
-## 📍 Implementations
-- 🔥 RT-DETRv2
-  - paddle: [code&weight](./rtdetrv2_paddle/)
-  - pytorch: [code&weight](./rtdetrv2_pytorch/)
-- 🔥 RT-DETR 
-  - paddle: [code&weight](./rtdetr_paddle)
-  - pytorch: [code&weight](./rtdetr_pytorch)
+Three structural changes to `src/zoo/rtdetr/feedback_module.py`. **No new
+parameters**; only reparameterization plus a compute-time level mask.
 
+```python
+# 1. Gate init bumped: sigmoid(-2.0)=0.12  →  sigmoid(0.0)=0.50
+gate_init: -2.0  →  0.0
 
-| Model | Input shape | Dataset | $AP^{val}$ | $AP^{val}_{50}$| Params(M) | FLOPs(G) | T4 TensorRT FP16(FPS)
-|:---:|:---:| :---:|:---:|:---:|:---:|:---:|:---:|
-| RT-DETR-R18 | 640 | COCO | 46.5 | 63.8 | 20 | 60 | 217 |
-| RT-DETR-R34 | 640 | COCO | 48.9 | 66.8 | 31 | 92 | 161 |
-| RT-DETR-R50-m | 640 | COCO | 51.3 | 69.6 | 36 | 100 | 145 |
-| RT-DETR-R50 |  640 | COCO | 53.1 | 71.3 | 42 | 136 | 108 |
-| RT-DETR-R101 | 640 | COCO | 54.3 | 72.7 | 76 | 259 | 74 |
-| RT-DETR-HGNetv2-L | 640 | COCO | 53.0 | 71.6 | 32 | 110 | 114 |
-| RT-DETR-HGNetv2-X | 640 | COCO | 54.8 | 73.1 | 67 | 234 | 74 |
-| RT-DETR-R18 | 640 | COCO + Objects365 | **49.2** | **66.6** | 20 | 60 | **217** |
-| RT-DETR-R50 | 640 | COCO + Objects365 | **55.3** | **73.4** | 42 | 136 | **108** |
-| RT-DETR-R101 | 640 | COCO + Objects365 | **56.2** | **74.6** | 76 | 259 | **74** |
-**RT-DETRv2-S** | 640 | COCO  | **48.1** <font color=green>(+1.6)</font> | **65.1** | 20 | 60 | 217 |
-**RT-DETRv2-M**<sup>*<sup> | 640 | COCO  | **49.9** <font color=green>(+1.0)</font> | **67.5** | 31 | 92 | 161 |
-**RT-DETRv2-M** | 640 | COCO | **51.9** <font color=green>(+0.6)</font> | **69.9** | 36 | 100 | 145 |
-**RT-DETRv2-L** | 640 | COCO | **53.4** <font color=green>(+0.3)</font> | **71.6** | 42 | 136 | 108 |
-**RT-DETRv2-X** | 640 | COCO | 54.3 | **72.8** <font color=green>(+0.1)</font>  | 76 | 259| 74 |
+# 2. Gate floor reparameterization (NEW): gate cannot collapse below floor.
+#    Before:  g_eff = sigmoid(alpha)
+#    After:   g_eff = floor + (1 - floor) * sigmoid(alpha)
+gate_floor: 0.1
 
-**Notes:**
-- `COCO + Objects365` in the table means finetuned model on COCO using pretrained weights trained on Objects365.
-
-
-## 🦄 Performance
-
-### 🏕️ Complex Scenarios
-<div align="center">
-  <img src="https://github.com/lyuwenyu/RT-DETR/assets/77494834/52743892-68c8-4e53-b782-9f89221739e4" width=500 >
-</div>
-
-### 🌋 Difficult Conditions
-<div align="center">
-  <img src="https://github.com/lyuwenyu/RT-DETR/assets/77494834/213cf795-6da6-4261-8549-11947292d3cb" width=500 >
-</div>
-
-## Citation
-If you use `RT-DETR` or `RTDETRv2` in your work, please use the following BibTeX entries:
+# 3. Level mask (NEW): refine only P2/P3 features (where small objects live).
+#    Cross-attention computed on memory subset; S4/S5 token positions
+#    in the refined memory are byte-identical to the input.
+level_mask: [True, True, False, False]  # (P2, P3, P4, P5)
 ```
-@misc{lv2023detrs,
-      title={DETRs Beat YOLOs on Real-time Object Detection},
-      author={Yian Zhao and Wenyu Lv and Shangliang Xu and Jinman Wei and Guanzhong Wang and Qingqing Dang and Yi Liu and Jie Chen},
-      year={2023},
-      eprint={2304.08069},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
-}
 
-@misc{lv2024rtdetrv2improvedbaselinebagoffreebies,
-      title={RT-DETRv2: Improved Baseline with Bag-of-Freebies for Real-Time Detection Transformer}, 
-      author={Wenyu Lv and Yian Zhao and Qinyao Chang and Kui Huang and Guanzhong Wang and Yi Liu},
-      year={2024},
-      eprint={2407.17140},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2407.17140}, 
-}
+Plus one bug fix discovered during training:
+```python
+# AMP fp16 vs LayerNorm fp32 dtype mismatch in the new index_copy_ path
+out.index_copy_(1, active_idx, h.to(memory.dtype))
 ```
+
+The full v2 module is at
+[`rtdetr_pytorch/src/zoo/rtdetr/feedback_module.py`](rtdetr_pytorch/src/zoo/rtdetr/feedback_module.py)
+(also mirrored in `v2_results/code/` for reproducibility).
+
+---
+
+## Repository layout
+
+```
+.
+├── report/                         16-page LaTeX report (main.pdf is the deliverable)
+│   ├── main.pdf                    ← final report
+│   ├── main.tex
+│   ├── sections/                   one .tex per section
+│   ├── figures/                    plots + detection visualizations
+│   ├── bibliography.bib
+│   ├── Makefile                    `make` rebuilds main.pdf
+│   └── scripts/generate_figures.py recreates plots from the JSON logs
+│
+├── v2_results/                     final v2 artifacts (positive result)
+│   ├── ablations/                  3 ablation JSONs (ON 640, OFF 640, ON 800)
+│   ├── logs/                       per-epoch log.txt + chain SLURM stdout
+│   ├── code/                       exact code state at training time
+│   └── README.md                   v2-specific notes
+│
+├── v1_results/                     v1 artifacts (negative-result baseline)
+│   ├── ablations/                  4 v1 ablation JSONs
+│   ├── logs/                       v1 per-epoch log.txt + chain stdout
+│   ├── viz/                        5 detection visualizations
+│   └── feedback_module.py          v1 module source for v1 vs v2 diff
+│
+├── rtdetr_pytorch/                 RT-DETR PyTorch source (modified)
+│   ├── src/zoo/rtdetr/
+│   │   ├── feedback_module.py      ← novel contribution (v2)
+│   │   └── rtdetr_decoder.py       (kwargs threaded for feedback)
+│   ├── configs/rtdetr/
+│   │   └── rtdetr_r50vd_hpc_feedback_p2_v2.yml
+│   └── tools/
+│       ├── full_ablation.py        ON-vs-OFF ablation eval
+│       ├── smoke_test_feedback.py  6 invariants for the feedback module
+│       └── visualize_feedback.py
+│
+├── check_status.sh                 live HPC dashboard (Bocconi-internal use)
+├── README_upstream.md              the original RT-DETR README (preserved)
+└── README.md                       you are here
+```
+
+The trained checkpoints (`*.pth`, ~750 MB each) are excluded from git per
+GitHub's 100 MB file-size limit. They live under
+`v1_results/checkpoints/` and `v2_results/checkpoints/` on the author's local
+machine; reach out if you need them.
+
+---
+
+## Reproducing the headline ablation
+
+Given the v2 checkpoint locally, the +0.99 ΔAP\_S is reproduced by two calls
+to `tools/full_ablation.py` against the same checkpoint:
+
+```bash
+cd rtdetr_pytorch
+
+# feedback ON (default)
+python tools/full_ablation.py \
+    -c configs/rtdetr/rtdetr_r50vd_hpc_feedback_p2_v2.yml \
+    -r path/to/checkpoint_v2_final.pth \
+    --label v2_on_640 --out-json /tmp/ablation_on.json
+
+# feedback OFF (same checkpoint, only inference toggled)
+python tools/full_ablation.py \
+    -c configs/rtdetr/rtdetr_r50vd_hpc_feedback_p2_v2.yml \
+    -r path/to/checkpoint_v2_final.pth --feedback-off \
+    --label v2_off_640 --out-json /tmp/ablation_off.json
+
+# delta
+python -c "
+import json
+on  = json.load(open('/tmp/ablation_on.json'))
+off = json.load(open('/tmp/ablation_off.json'))
+print(f'AP_S(ON) = {on[\"AP_S\"]*100:.2f}')
+print(f'AP_S(OFF) = {off[\"AP_S\"]*100:.2f}')
+print(f'Delta AP_S = {(on[\"AP_S\"]-off[\"AP_S\"])*100:+.2f}')
+"
+# expected output:
+#   AP_S(ON) = 34.25
+#   AP_S(OFF) = 33.26
+#   Delta AP_S = +0.99
+```
+
+Pre-computed JSONs are in `v2_results/ablations/`.
+
+---
+
+## Training (for completeness)
+
+The v2 checkpoint was produced by 13 effective epochs of finetuning from the
+public `rtdetr_r50vd_6x_coco.pth` weights, on COCO `train2017` with
+multi-scale [480..800], using AdamW with per-group learning rates (backbone
+5e-7, all other groups 5e-5). Run as four chained SLURM jobs on a Bocconi
+A100 80 GB (4g.40gb MIG slice), ~32 hours wall-clock.
+
+The exact training script: `rtdetr_pytorch/scripts_hpc/train_p2_v2_chain.sbatch`.
+
+---
+
+## Rebuilding the report
+
+The 16-page LaTeX report is in `report/`:
+
+```bash
+cd report
+make           # regenerates figures + 3-pass pdflatex + bibtex
+xdg-open main.pdf
+```
+
+Requires a working LaTeX install. The `Makefile` is configured for
+`~/.TinyTeX/bin/x86_64-linux/pdflatex`; adjust `PDFLATEX` and `BIBTEX` paths
+if your install is elsewhere. Figures are regenerated by
+`scripts/generate_figures.py` from the JSONs and `log.txt` files in
+`v1_results/` and `v2_results/`.
+
+---
+
+## Acknowledgments
+
+- Built on top of [RT-DETR](https://github.com/lyuwenyu/RT-DETR) by Lyu et al.
+  The original upstream README is preserved as `README_upstream.md`.
+- Trained on the Bocconi University HPC cluster.
+- Project pitch and progress feedback from co-author Nour Jennane.
+
+## Authors
+
+- **Hatem Saadallah** — Bocconi University, MSc in Artificial Intelligence
+- **Nour Jennane** — Bocconi University, MSc in Artificial Intelligence
+
+## License
+
+Code modifications follow the upstream RT-DETR license (Apache-2.0).
+The report and figures are released under CC-BY-4.0.

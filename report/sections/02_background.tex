@@ -1,0 +1,41 @@
+\section{Background}
+\label{sec:background}
+
+\subsection{DETR and its descendants}
+DETR~\cite{carion2020detr} reframed detection as direct set prediction. A CNN backbone produces a feature map; a transformer encoder--decoder operates on a flattened token sequence; $N$ object queries cross-attend over encoder memory across $L$ decoder layers; a Hungarian matcher assigns predictions to ground-truth boxes for loss computation; and inference is NMS-free. Standard transformer attention reads
+\begin{equation}
+    \mathrm{Attn}(Q, K, V) = \mathrm{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}}\right) V,
+    \label{eq:attn}
+\end{equation}
+with multi-head attention concatenating $h$ such operations. DETR's main weakness is slow convergence and weak small-object detection, attributed to the global, dense attention pattern over a single low-resolution feature map.
+
+\subsection{Deformable attention and multi-scale memory}
+Deformable DETR~\cite{zhu2021deformable} replaces global attention with a sparse mechanism: each query samples a small number of points $K$ from each of $L$ feature levels at learned offsets $\Delta p_{lqk}$ around a reference point $\hat p_q$:
+\begin{equation}
+    \mathrm{MSDA}(Q, \hat p_q, \{x^l\}) = \sum_{l=1}^{L} \sum_{k=1}^{K} A_{lqk}\, W_l\, x^l\!\bigl(\hat p_q + \Delta p_{lqk}\bigr),
+    \label{eq:msda}
+\end{equation}
+where $A_{lqk}$ are learned attention weights that sum to one across $(l,k)$ for each query $q$. This made multi-scale memory tractable and dramatically sped up convergence.
+
+\subsection{RT-DETR architecture}
+RT-DETR~\cite{lyu2024rtdetr} is a real-time variant built on this lineage. Its hybrid encoder splits into two complementary blocks:
+\begin{itemize}
+    \item \textbf{AIFI} --- a transformer block applied only to the smallest feature map ($S_5$, stride 32), where each token has the largest receptive field and intra-scale interaction is most useful.
+    \item \textbf{CCFF} --- a CNN-based feature fusion that combines features across pyramid levels (PAN-style), keeping cross-scale aggregation cheap.
+\end{itemize}
+The flattened multi-level token sequence (the \emph{encoder memory}) is then attended over by the decoder via Equation~\ref{eq:msda}. Queries are initialized from the top-$N$ encoder predictions (anchor-style, à la DAB-DETR~\cite{liu2022dabdetr}), with optional contrastive denoising auxiliary queries during training~\cite{zhang2023dino}.
+
+For our R50-backbone variant with input $640\!\times\!640$ and the additional P2 (stride-4) feature level we adopt in Section~\ref{sec:method}, the memory has shape $[B,\, L,\, d{=}256]$ with
+\begin{equation}
+    L = \underbrace{160{\times}160}_{\text{P2}} + \underbrace{80{\times}80}_{\text{P3}} + \underbrace{40{\times}40}_{\text{P4}} + \underbrace{20{\times}20}_{\text{P5}} = 25600 + 6400 + 1600 + 400 = 34000.
+\end{equation}
+Of these, 25,600 tokens (75\%) live at stride 4 (P2), where each token covers $4\!\times\!4$ image pixels --- the natural resolution for small objects.
+
+\subsection{Why small objects are hard for transformers}
+Transformer detectors share a structural disadvantage on small objects relative to FPN-equipped CNN detectors:
+\begin{enumerate}
+    \item Each query receives information about all objects in an image through a fixed-capacity attention budget; small objects get little of that budget when the image is dominated by large objects.
+    \item The encoder memory is computed once before any decoder layer fires, so refinement is one-way: queries can attend over memory, but memory has no path to be revised in light of what the queries discover.
+    \item Most published transformer detectors only use stride-$\{8, 16, 32\}$ feature levels (P3--P5). Stride 4 (P2) is omitted for cost reasons --- but it is the level where a 16-pixel object is still 4x4 tokens, while at stride 8 it is 2x2 and at stride 32 it is sub-token.
+\end{enumerate}
+Our two architectural moves --- adding the P2 level and introducing a feedback path --- target points (3) and (2) respectively. Point (1) is left to the broader query-allocation literature.

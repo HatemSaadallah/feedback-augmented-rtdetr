@@ -1,0 +1,125 @@
+\section{Hyperparameters}
+\label{app:hyper}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lll}
+    \toprule
+    \textbf{Group} & \textbf{Hyperparameter} & \textbf{Value} \\
+    \midrule
+    Architecture & Backbone & ResNet-50-vd \\
+    & Encoder hidden dim $d$ & 256 \\
+    & Encoder heads & 8 \\
+    & Encoder layers (AIFI) & 1 (on P5) \\
+    & Decoder layers $L$ & 6 \\
+    & Decoder queries $N$ & 500 \\
+    & Pyramid levels & P2, P3, P4, P5 (strides 4, 8, 16, 32) \\
+    & Number of denoising queries & 100 \\
+    \midrule
+    Feedback (v2) & Gate parameterization & $\mathrm{floor} + (1-\mathrm{floor})\sigma(\alpha)$ \\
+    & $\mathrm{floor}$ & $0.1$ \\
+    & $\alpha_{\mathrm{init}}$ & $0.0$ \\
+    & Level mask & $(1, 1, 0, 0)$ for (P2, P3, P4, P5) \\
+    & FFN hidden dim & 1024 \\
+    & Dropout & 0.0 \\
+    & Inserted after decoder layer & 0 \\
+    \midrule
+    Training & Optimizer & AdamW \\
+    & $\beta_1, \beta_2$ & $0.9, 0.999$ \\
+    & Weight decay (default) & $10^{-4}$ \\
+    & LR backbone (group 0) & $5 \times 10^{-7}$ \\
+    & LR feedback (group 1) & $5 \times 10^{-5}$ \\
+    & LR encoder norm/bias (group 2) & $5 \times 10^{-5}$ \\
+    & LR decoder norm/bias (group 3) & $5 \times 10^{-5}$ \\
+    & LR catch-all (group 4) & $5 \times 10^{-5}$ \\
+    & Multi-scale input & $\{480, \ldots, 800\}$ uniform \\
+    & Mixed precision & AMP fp16 \\
+    & Total epochs & 13 (1+4+4+4 chain links) \\
+    & Batch size (per GPU) & 4 \\
+    \midrule
+    Evaluation & Resolution (main table) & $640 \times 640$ \\
+    & Resolution (robustness check) & $800 \times 800$ \\
+    & Number of test images & 5000 (val2017) \\
+    \bottomrule
+\end{tabular}
+\caption{Full hyperparameter table for the v2 retrain reported in Section~\ref{sec:results}.}
+\label{tab:hyper}
+\end{table}
+
+\section{Feedback module: full code listing}
+\label{app:code}
+
+\begin{lstlisting}[caption={Core of \texttt{src/zoo/rtdetr/feedback\_module.py} (v2). The two structural changes from v1 are the \texttt{effective\_gate} property (gate floor) and the \texttt{level\_mask} branch in \texttt{forward} (subset of memory levels refined). The remaining lines are unchanged from v1.}, label={lst:feedback}]
+class DecoderToEncoderFeedback(nn.Module):
+    def __init__(self, d_model=256, nhead=8, dim_feedforward=1024,
+                 dropout=0.0, gate_init=0.0, gate_floor=0.0,
+                 level_mask=None):
+        super().__init__()
+        self.cross_attn = nn.MultiheadAttention(
+            d_model, nhead, dropout=dropout, batch_first=True)
+        self.norm_attn = nn.LayerNorm(d_model)
+        self.ffn = nn.Sequential(
+            nn.Linear(d_model, dim_feedforward),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim_feedforward, d_model))
+        self.norm_ffn = nn.LayerNorm(d_model)
+        self.gate = nn.Parameter(torch.tensor(float(gate_init)))
+        assert 0.0 <= gate_floor < 1.0
+        self.gate_floor = float(gate_floor)
+        if level_mask is None:
+            self.level_mask = None
+        else:
+            mask = torch.tensor([bool(x) for x in level_mask],
+                                dtype=torch.bool)
+            self.register_buffer('level_mask', mask, persistent=False)
+        self.disabled = False
+        self.last_attn_weights = None
+
+    @property
+    def effective_gate(self):
+        return self.gate_floor + (1.0 - self.gate_floor) \
+                                * torch.sigmoid(self.gate)
+
+    def _active_indices(self, spatial_shapes, device):
+        offset = 0; chunks = []
+        for li, (h_l, w_l) in enumerate(spatial_shapes):
+            n_l = int(h_l) * int(w_l)
+            if self.level_mask[li].item():
+                chunks.append(torch.arange(offset, offset + n_l,
+                                           device=device))
+            offset += n_l
+        return torch.cat(chunks) if chunks else None
+
+    def forward(self, memory, dec_out, spatial_shapes=None):
+        if self.disabled:
+            self.last_attn_weights = None
+            return memory
+
+        if self.level_mask is not None and spatial_shapes is not None:
+            active_idx = self._active_indices(spatial_shapes,
+                                              memory.device)
+            if active_idx is None or active_idx.numel() == 0:
+                return memory
+            sub_mem = memory.index_select(1, active_idx)
+        else:
+            active_idx = None
+            sub_mem = memory
+
+        attn_out, attn_w = self.cross_attn(
+            query=sub_mem, key=dec_out, value=dec_out,
+            need_weights=True, average_attn_weights=True)
+        self.last_attn_weights = attn_w.detach()
+
+        gate = self.effective_gate
+        h = self.norm_attn(sub_mem + gate * attn_out)
+        h = self.norm_ffn(h + gate * self.ffn(h))
+
+        if active_idx is None:
+            return h
+        out = memory.clone()
+        # AMP dtype fix: LayerNorm output is fp32, memory is fp16.
+        out.index_copy_(1, active_idx, h.to(memory.dtype))
+        return out
+\end{lstlisting}

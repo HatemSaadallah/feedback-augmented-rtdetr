@@ -1,0 +1,8 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented Feedback-Augmented RT-DETR, a small architectural addition to RT-DETR that lets the encoder memory be refined mid-decoding using preliminary decoder predictions. A naive implementation of this idea (v1) is statistically silent at inference: the gate that mixes the refinement into memory decays during training, and a same-checkpoint ablation shows zero contribution to small-object AP. Two structural fixes --- a gate-floor reparameterization that prevents the mechanism from being silenced, and a level mask that focuses the refinement on the P2 and P3 features where small objects live --- turn the silent module into a measurable one, with $\Delta\mathrm{AP}_S = +0.99$ at $640$ resolution and $\Delta\mathrm{AP}_S = +2.76$ when raising inference resolution to $800$. Both fixes add zero parameters relative to v1; the gain is purely from a better way of writing the same computation.
+
+The broader takeaway is methodological: when introducing a learnable additive component to an existing well-trained pipeline, an unconstrained sigmoid gate gives the optimizer an escape route to silence the new mechanism without paying a loss penalty. A floor on the gate is a one-line structural fix that closes that escape route, and (in our case) is the difference between a positive and a null causal-effect ablation. We hope this small case study is useful to others adding gated additive modules to existing detection or vision architectures.
+
+\paragraph{Code and data.} Training and evaluation code, the trained v2 checkpoint, and all ablation result JSONs are available locally under \texttt{/home/hatem/Desktop/rt-detr/v2\_results/}. The exact code for the feedback module is reproduced in Appendix~\ref{app:code}.
