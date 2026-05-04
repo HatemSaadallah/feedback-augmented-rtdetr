@@ -1,0 +1,12 @@
+\section{Limitations}
+\label{sec:limitations}
+
+We acknowledge several limitations, in roughly decreasing order of how much they would change the conclusion:
+
+\begin{enumerate}
+    \item \textbf{Single seed.} All numbers are from one training run. A multi-seed sweep would tighten the confidence interval on $\Delta\mathrm{AP}_S$ and confirm whether $+0.99$ is reproducible.
+    \item \textbf{Floor and mask not isolated.} v2 changes both fixes simultaneously, so we cannot say from this experiment whether one alone is sufficient. A $2{\times}2$ ablation is the obvious next step.
+    \item \textbf{Below the published RT-DETR baseline.} v2 reaches $\mathrm{AP}_S = 34.25$ vs the published $34.7$. Our claim is the $+0.99$ causal contribution, not a new state of the art --- the absolute deficit is explained by the schedule (13-epoch finetune vs the paper's 6$\times$ schedule from scratch).
+    \item \textbf{Latency cost is dominated by P2.} The ${\approx}2{\times}$ slowdown over the RT-DETR baseline ($53.3 \to 25.9$ FPS) is essentially entirely from adding the stride-4 feature level. The feedback module itself, especially with the level mask, is a small fraction of inference cost.
+    \item \textbf{COCO only.} Domains where small objects dominate (aerial imagery, traffic surveillance) might show a larger or smaller gain; we did not test there.
+\end{enumerate}

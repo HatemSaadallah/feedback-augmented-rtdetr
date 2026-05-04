@@ -1,0 +1,12 @@
+\section{Experimental Setup}
+\label{sec:exp}
+
+\paragraph{Dataset.} We train on COCO 2017 \texttt{train2017} (118k images, 860k boxes) and evaluate on \texttt{val2017} (5k images)~\cite{lin2014coco}.
+
+\paragraph{Metrics.} The standard COCO AP family: $\mathrm{AP}$ (mean over IoU thresholds $\{0.50, 0.55, \ldots, 0.95\}$); $\mathrm{AP}_S$, $\mathrm{AP}_M$, $\mathrm{AP}_L$ for objects with area $<32^2$, $32^2$--$96^2$, $>96^2$ pixels. Throughout this paper, $\mathrm{AP}_S$ is the headline metric; the others are reported for completeness and to verify that the proposed mechanism does not degrade the easier categories.
+
+\paragraph{Architecture.} RT-DETR-R50 (ResNet-50-vd backbone~\cite{he2016resnet}) with the stride-4 P2 level added to the encoder, $500$ decoder queries, multi-scale training inputs uniformly sampled from $\{480, 512, \ldots, 800\}$, and $6$ decoder layers. The feedback module fires after layer $0$.
+
+\paragraph{Training.} We initialize from the public \texttt{rtdetr\_r50vd\_6x\_coco.pth} weights and fine-tune for 13 effective epochs with AdamW~\cite{loshchilov2019adamw}: backbone learning rate $5 \times 10^{-7}$, all other groups $5 \times 10^{-5}$, weight decay $10^{-4}$, AMP fp16. Compute is a single Bocconi A100 \mbox{4g.40gb} MIG slice; one full schedule takes ${\approx}32$ wall-clock hours.
+
+\paragraph{Both v1 and v2 use this identical setup.} The differences between them are confined to two lines of code (the gate parameterization and the level mask).

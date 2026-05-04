@@ -1,0 +1,22 @@
+\section{First Attempt (v1) and Why It Failed}
+\label{sec:v1}
+
+\paragraph{What we tried.} In our initial implementation, the gate was a plain reparameterization of a learnable scalar $\alpha$:
+\begin{equation*}
+    g^{(\text{v1})} = \sigma(\alpha), \qquad \alpha_{\mathrm{init}} = -2 \;\Rightarrow\; g \approx 0.12 \text{ at start}.
+\end{equation*}
+The reasoning was that a low initial gate would let the rest of the decoder train undisturbed for the first few epochs while the feedback module's cross-attention weights were learning, after which the gate could rise. We applied the feedback to all four pyramid levels in the encoder memory.
+
+\paragraph{What happened.} After 12 epochs of training, we ran the same-checkpoint ablation described in Section~\ref{sec:ablation}: identical model weights, with the feedback module's forward call swapped between active and pass-through at inference. The result on COCO \textsc{val2017} at $640{\times}640$ was
+\begin{equation*}
+    \mathrm{AP}_S^{(\text{v1, ON})} = 33.91, \qquad \mathrm{AP}_S^{(\text{v1, OFF})} = 33.91, \qquad \Delta\mathrm{AP}_S = 0.00.
+\end{equation*}
+The same null result appeared on $\mathrm{AP}, \mathrm{AP}_M, \mathrm{AP}_L$. The feedback module had been trained, but at inference it contributed nothing.
+
+\paragraph{Why it failed.} The gate did not rise. Across training it drifted slowly downward (from $0.12$ to ${\approx}0.10$). Two effects combine to cause this:
+
+\emph{Optimizer escape.} The plain sigmoid has gradient $\sigma'(\alpha) = \sigma(\alpha)(1-\sigma(\alpha))$, which goes to zero as $\alpha \to -\infty$. If the rest of the network can compensate for the missing feedback signal --- and it apparently can --- the optimizer faces no penalty for pushing $\alpha$ further negative; nothing pulls it back. The cross-attention output is then multiplied by an essentially-zero number before being added to memory, which is statistically indistinguishable from skipping the cross-attention entirely.
+
+\emph{Diluted target.} The mechanism was applied to all four levels equally. The same set of attention weights had to be useful for the 25{,}600 stride-4 tokens (where small objects need precision) and the 400 stride-32 tokens (where each token covers a $32{\times}32$ neighborhood) at once. There is no reason this single attention pattern should be optimal for both regimes.
+
+The negative result is therefore a runtime failure, not a training failure. The trained weights are non-trivial; they simply never fire at meaningful strength.

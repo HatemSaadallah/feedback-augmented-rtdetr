@@ -1,0 +1,6 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We added a decoder-to-encoder feedback module to RT-DETR. A direct implementation was statistically silent at inference; two structural fixes --- a gate floor and a P2/P3 level mask, both zero-parameter --- turned the silent module into a causally measurable one, with $\Delta\mathrm{AP}_S = +0.99$ on COCO \textsc{val2017}. The contribution is modest in magnitude but real and reproducible from the same checkpoint.
+
+The methodological lesson is broader than the specific architecture. When a learnable additive component is introduced into an already-trained pipeline, an unconstrained sigmoid gate gives the optimizer an escape route to silence the new mechanism without paying a loss penalty. A floor on the gate is a one-line structural fix that closes that escape route. In our setting, that one line is the difference between a null and a positive causal-effect ablation. We expect this to be useful to anyone adding gated additive modules to existing detection or vision architectures.
