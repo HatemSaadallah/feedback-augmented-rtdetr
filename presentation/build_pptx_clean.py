@@ -530,8 +530,39 @@ def build():
     prs = Presentation()
     prs.slide_width = SLIDE_W
     prs.slide_height = SLIDE_H
-    TOTAL = 24
+    TOTAL = 27   # 24 content slides + 3 highlight-duplicate spotlights
     SEC = "1. Problem Formulation"  # current section label, mutated below
+
+    # Slide-index auto-counter — incrementing this lets us insert new slides
+    # without renumbering every footer call below.
+    counter = [0]
+    def nx():
+        counter[0] += 1
+        return counter[0]
+
+    # Helpers for the "spotlight" duplicate slides (no animations — same slide
+    # rebuilt with a highlight shape on top, advance by clicking once).
+    def add_circle_highlight(slide, x, y, w, h, *, color, lw=4):
+        oval = slide.shapes.add_shape(MSO_SHAPE.OVAL, x, y, w, h)
+        oval.fill.background()
+        oval.line.color.rgb = color
+        oval.line.width = Pt(lw)
+        oval.shadow.inherit = False
+        return oval
+
+    def add_arrow_highlight(slide, x1, y1, x2, y2, *, color, lw=4):
+        arr = slide.shapes.add_connector(1, x1, y1, x2, y2)
+        arr.line.color.rgb = color
+        arr.line.width = Pt(lw)
+        # add arrowhead via XML
+        ln = arr.line._get_or_add_ln()
+        from lxml import etree as _et
+        head_xml = (
+            '<a:tailEnd xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+            'type="triangle" w="lg" len="lg"/>'
+        )
+        ln.append(_et.fromstring(head_xml))
+        return arr
 
     # ---------- 1. Title ----------
     s = add_blank_slide(prs)
@@ -563,7 +594,7 @@ def build():
     # ====================================================================
     add_section_divider(prs, 1, 5, "Problem Formulation",
                         "What is small-object detection, and why does RT-DETR struggle?")
-    add_footer(prs.slides[-1], 2, TOTAL, section="1. Problem Formulation")
+    add_footer(prs.slides[-1], nx(), TOTAL, section="1. Problem Formulation")
 
     # ---------- 3. Problem ----------
     s = add_blank_slide(prs)
@@ -583,7 +614,7 @@ def build():
     add_text(s, Inches(8.4), Inches(6.0), Inches(4.5), Inches(0.6),
              "33-point gap. Why?",
              size=18, color=DARK, italic=True)
-    add_footer(s, 3, TOTAL, section="1. Problem Formulation")
+    add_footer(s, nx(), TOTAL, section="1. Problem Formulation")
 
     # ---------- 4. RT-DETR architecture ----------
     s = add_blank_slide(prs)
@@ -596,7 +627,7 @@ def build():
     add_text(s, Inches(0.7), Inches(6.3), Inches(12.0), Inches(0.4),
              "Backbone extracts a feature pyramid (P2–P5); the hybrid encoder fuses scales; the decoder cross-attends.",
              size=12, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 4, TOTAL, section="1. Problem Formulation")
+    add_footer(s, nx(), TOTAL, section="1. Problem Formulation")
 
     # ---------- 5. Why? structural one-way ----------
     s = add_blank_slide(prs)
@@ -609,14 +640,14 @@ def build():
     add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.5),
              "Refinement of the features small objects live in is a one-way street.",
              size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 5, TOTAL, section="1. Problem Formulation")
+    add_footer(s, nx(), TOTAL, section="1. Problem Formulation")
 
     # ====================================================================
     # SECTION 2 — Data Sourcing Strategy
     # ====================================================================
     add_section_divider(prs, 2, 5, "Data Sourcing Strategy",
                         "What dataset we used and why it is appropriate.")
-    add_footer(prs.slides[-1], 6, TOTAL, section="2. Data Sourcing Strategy")
+    add_footer(prs.slides[-1], nx(), TOTAL, section="2. Data Sourcing Strategy")
 
     # ---------- 6. COCO 2017 ----------
     s = add_blank_slide(prs)
@@ -661,14 +692,14 @@ def build():
     for i, (line, _) in enumerate(why):
         add_text(s, Inches(7.6), Inches(2.6 + i * 0.85), Inches(5.0), Inches(0.8),
                  "•  " + line, size=14, color=DARK)
-    add_footer(s, 7, TOTAL, section="2. Data Sourcing Strategy")
+    add_footer(s, nx(), TOTAL, section="2. Data Sourcing Strategy")
 
     # ====================================================================
     # SECTION 3 — Proposed Solution
     # ====================================================================
     add_section_divider(prs, 3, 5, "Proposed Solution",
                         "The feedback module, the math behind it, and the two fixes that make it work.")
-    add_footer(prs.slides[-1], 8, TOTAL, section="3. Proposed Solution")
+    add_footer(prs.slides[-1], nx(), TOTAL, section="3. Proposed Solution")
 
     # ---------- 8. Our idea ----------
     s = add_blank_slide(prs)
@@ -678,21 +709,21 @@ def build():
     add_text(s, Inches(0.7), Inches(5.7), Inches(12.0), Inches(0.6),
              "Feed early decoder predictions back into the encoder memory.",
              size=22, color=DARK, align=PP_ALIGN.CENTER)
-    add_footer(s, 9, TOTAL, section="3. Proposed Solution")
+    add_footer(s, nx(), TOTAL, section="3. Proposed Solution")
 
     # ---------- 10. MATH 1: Attention ----------
     s = add_blank_slide(prs)
     add_title(s, "Attention, in one line")
     add_image(s, BUILD / "math_attention.png",
               Inches(0.5), Inches(1.5), w=Inches(12.3))
-    add_footer(s, 10, TOTAL, section="3. Proposed Solution")
+    add_footer(s, nx(), TOTAL, section="3. Proposed Solution")
 
     # ---------- 11. MATH 2: Feedback formula ----------
     s = add_blank_slide(prs)
     add_title(s, "Our feedback rule")
     add_image(s, BUILD / "math_feedback.png",
               Inches(0.5), Inches(1.5), w=Inches(12.3))
-    add_footer(s, 11, TOTAL, section="3. Proposed Solution")
+    add_footer(s, nx(), TOTAL, section="3. Proposed Solution")
 
     # ---------- 12. v1 first attempt + why it failed (combined) ----------
     s = add_blank_slide(prs)
@@ -715,7 +746,32 @@ def build():
     add_text(s, Inches(7.1), Inches(3.1), Inches(5.6), Inches(2.5),
              "α drifts to −∞ → gate ≈ 0.\n\nThe feedback signal is multiplied by zero before reaching memory.",
              size=15, color=DARK)
-    add_footer(s, 12, TOTAL, section="3. Proposed Solution")
+    add_footer(s, nx(), TOTAL, section="3. Proposed Solution")
+
+    # ---------- SPOTLIGHT: same v1-failure slide, with red circle on 0.00 ----------
+    s = add_blank_slide(prs)
+    add_title(s, "First attempt (v1) — and why it failed")
+    add_text(s, Inches(0.7), Inches(1.55), Inches(12.0), Inches(0.5),
+             "Plain sigmoid gate, applied to all four pyramid levels.",
+             size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
+    add_runs(s, Inches(0.4), Inches(2.8), Inches(6.4), Inches(1.6),
+             [{"text": "Δ AP", "size": 56, "bold": True, "color": RED},
+              {"text": "S",    "size": 56, "bold": True, "color": RED, "subscript": True},
+              {"text": "  =  0.00", "size": 56, "bold": True, "color": RED}],
+             align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.4), Inches(4.5), Inches(6.4), Inches(0.5),
+             "the mechanism contributed nothing",
+             size=15, color=LIGHT, align=PP_ALIGN.CENTER, italic=True)
+    add_text(s, Inches(7.1), Inches(2.5), Inches(5.6), Inches(0.6),
+             "Why?", size=24, bold=True, color=DARK)
+    add_text(s, Inches(7.1), Inches(3.1), Inches(5.6), Inches(2.5),
+             "α drifts to −∞ → gate ≈ 0.\n\nThe feedback signal is multiplied by zero before reaching memory.",
+             size=15, color=DARK)
+    # SPOTLIGHT: red circle around the 0.00
+    add_circle_highlight(s,
+        Inches(4.45), Inches(2.85), Inches(2.0), Inches(1.5),
+        color=RED, lw=5)
+    add_footer(s, nx(), TOTAL, section="3. Proposed Solution")
 
     # ---------- 13. v2 fixes ----------
     s = add_blank_slide(prs)
@@ -725,14 +781,14 @@ def build():
     add_text(s, Inches(0.7), Inches(6.1), Inches(12.0), Inches(0.5),
              "Reparameterize the gate. Refine only the levels small objects live in.",
              size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 13, TOTAL, section="3. Proposed Solution")
+    add_footer(s, nx(), TOTAL, section="3. Proposed Solution")
 
     # ====================================================================
     # SECTION 4 — Performance Evaluation Approach
     # ====================================================================
     add_section_divider(prs, 4, 5, "Performance Evaluation Approach",
                         "Metrics, baselines, and the same-checkpoint ablation that isolates causality.")
-    add_footer(prs.slides[-1], 14, TOTAL, section="4. Evaluation Approach")
+    add_footer(prs.slides[-1], nx(), TOTAL, section="4. Evaluation Approach")
 
     # ---------- 15. Metrics + protocol ----------
     s = add_blank_slide(prs)
@@ -787,14 +843,14 @@ def build():
     add_text(s, Inches(0.7), Inches(6.65), Inches(12.0), Inches(0.4),
              "Toggle feedback ON / OFF at inference. Identical weights, identical inputs.",
              size=12, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 15, TOTAL, section="4. Evaluation Approach")
+    add_footer(s, nx(), TOTAL, section="4. Evaluation Approach")
 
     # ====================================================================
     # SECTION 5 — Final Results
     # ====================================================================
     add_section_divider(prs, 5, 5, "Final Results",
                         "Training trajectory, the causal effect, robustness, trade-offs, and what's next.")
-    add_footer(prs.slides[-1], 16, TOTAL, section="5. Final Results")
+    add_footer(prs.slides[-1], nx(), TOTAL, section="5. Final Results")
 
     # ---------- 17. Training trajectory ----------
     s = add_blank_slide(prs)
@@ -804,7 +860,32 @@ def build():
     add_text(s, Inches(0.7), Inches(6.4), Inches(12.0), Inches(0.4),
              "v2 first crosses v1's final 33.91 at epoch 8 — four epochs early.",
              size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 17, TOTAL, section="5. Final Results")
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
+
+    # ---------- SPOTLIGHT: same trajectory slide, arrow at the crossover ----------
+    s = add_blank_slide(prs)
+    add_title(s, "Training: v2 climbs faster, ends higher")
+    add_image(s, FIG_DIR / "learning_curves.png",
+              Inches(2.4), Inches(1.6), w=Inches(8.5))
+    add_text(s, Inches(0.7), Inches(6.4), Inches(12.0), Inches(0.4),
+             "v2 first crosses v1's final 33.91 at epoch 8 — four epochs early.",
+             size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
+    # SPOTLIGHT: green oval circling the crossover region of the v2 curve
+    # near epoch 8 / AP_S ≈ 34. Plot area maps as roughly:
+    #   x = 2.4 + epoch/12 * 7.4 (axis spans ~7.4 inches inside 8.5 image)
+    #   y = 1.6 + (34 - aps)/(34-24) * 4.4   (plot area ~4.4 inches tall)
+    # Crossover at (epoch=8, AP_S≈33.9) ≈ slide (7.33, 1.92).
+    add_circle_highlight(s,
+        Inches(6.95), Inches(1.85),     # top-left of circle
+        Inches(0.85), Inches(0.7),      # circle size — focused, not huge
+        color=GREEN, lw=4)
+    # Callout label sitting above the chart, pointing in
+    add_text(s, Inches(7.6), Inches(2.55), Inches(3.0), Inches(0.4),
+             "v2 crosses here", size=14, bold=True, color=GREEN)
+    add_text(s, Inches(7.6), Inches(2.85), Inches(3.0), Inches(0.4),
+             "at epoch 8 (4 early)",
+             size=12, color=GREEN, italic=True)
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 18. Final scores (v1 vs v2 with feedback ON) ----------
     s = add_blank_slide(prs)
@@ -835,7 +916,7 @@ def build():
     add_runs(s, Inches(7.0), Inches(5.0), Inches(5.3), Inches(0.5),
              aps_runs(18, color=GREEN, italic=True, suffix="    +0.4"),
              align=PP_ALIGN.CENTER)
-    add_footer(s, 18, TOTAL, section="5. Final Results")
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 19. Causal result (the big one) ----------
     s = add_blank_slide(prs)
@@ -856,7 +937,32 @@ def build():
     add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.6),
              "Feedback has a real causal impact on small-object detection.",
              size=22, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
-    add_footer(s, 19, TOTAL, section="5. Final Results")
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
+
+    # ---------- SPOTLIGHT: same causal slide, green circle around +0.99 ----------
+    s = add_blank_slide(prs)
+    add_title(s, "Causal effect of feedback")
+    cols = [
+        ("ON",  f"{APS_ON:.2f}",  GREEN, "feedback enabled"),
+        ("OFF", f"{APS_OFF:.2f}", LIGHT, "feedback bypassed"),
+        ("Δ",   f"+{DELTA:.2f}",  NAVY,  "the contribution"),
+    ]
+    for i, (label, val, c, sub) in enumerate(cols):
+        x = Inches(0.7 + i * 4.15)
+        add_text(s, x, Inches(2.0), Inches(4.0), Inches(0.6),
+                 label, size=24, color=LIGHT, align=PP_ALIGN.CENTER)
+        add_text(s, x, Inches(2.7), Inches(4.0), Inches(2.2),
+                 val, size=110, bold=True, color=c, align=PP_ALIGN.CENTER)
+        add_text(s, x, Inches(5.2), Inches(4.0), Inches(0.5),
+                 sub, size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.6),
+             "Feedback has a real causal impact on small-object detection.",
+             size=22, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
+    # SPOTLIGHT: green circle around the Δ column's +0.99
+    add_circle_highlight(s,
+        Inches(8.95), Inches(2.55), Inches(3.95), Inches(2.55),
+        color=GREEN, lw=5)
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 20. Resolution effect ----------
     s = add_blank_slide(prs)
@@ -879,7 +985,7 @@ def build():
     add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.5),
              "Feedback helps. Spatial sampling helps too.",
              size=16, color=LIGHT, align=PP_ALIGN.CENTER)
-    add_footer(s, 20, TOTAL, section="5. Final Results")
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 21. Strengths + Limitations (combined) ----------
     s = add_blank_slide(prs)
@@ -921,7 +1027,7 @@ def build():
     add_text(s, Inches(0.7), Inches(6.65), Inches(12.0), Inches(0.4),
              "Strong on accuracy; pays in inference speed. The next slide proposes a way to recover speed.",
              size=12, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 21, TOTAL, section="5. Final Results")
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 22. Future work — recovering FPS (NEW) ----------
     s = add_blank_slide(prs)
@@ -978,7 +1084,7 @@ def build():
     add_text(s, Inches(0.7), Inches(6.7), Inches(12.0), Inches(0.4),
              "Common goal: keep the +0.99 small-object AP gain while approaching the 53 FPS baseline.",
              size=13, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
-    add_footer(s, 22, TOTAL, section="5. Final Results")
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 23. Conclusion ----------
     s = add_blank_slide(prs)
@@ -1004,7 +1110,7 @@ def build():
                  head, size=24, bold=True, color=DARK)
         add_text(s, Inches(1.7), y + Inches(0.7), Inches(11.0), Inches(0.6),
                  sub, size=15, color=LIGHT, italic=True)
-    add_footer(s, 23, TOTAL, section="5. Final Results")
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 24. Thank you ----------
     s = add_blank_slide(prs)
