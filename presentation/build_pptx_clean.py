@@ -200,99 +200,75 @@ def fig_idea_pipeline():
 
 
 def fig_attention_math():
-    """Standard MHA equation with arrows to Q, K, V."""
+    """Standard MHA equation centered, with three colored Q/K/V cards
+    below acting as the legend. No arrows."""
     fig, ax = plt.subplots(figsize=(13, 5.6))
     ax.axis("off"); ax.set_xlim(0, 13); ax.set_ylim(0, 5.6)
 
-    # main equation
-    ax.text(6.5, 3.0,
+    Q_COL = "#1F6FEB"
+    K_COL = "#FF7F0E"
+    V_COL = "#2CA02C"
+
+    # equation, single render
+    ax.text(6.5, 4.4,
             r"$\mathrm{Attn}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) \;=\; "
             r"\mathrm{softmax}\!\left(\frac{\mathbf{Q}\,\mathbf{K}^{\top}}"
             r"{\sqrt{d}}\right)\mathbf{V}$",
-            fontsize=46, ha="center", va="center", color=DARK_HEX)
+            fontsize=42, ha="center", va="center", color=DARK_HEX)
 
-    # arrows + labels (Q, K, V)
-    annotations = [
-        # (target_x, target_y, text, label_x, label_y)
-        (3.05, 3.15, "what we\nsearch for", 1.6, 5.0),
-        (3.55, 3.15, "where we\nlook",       4.7, 5.0),
-        (4.05, 3.15, "information\nwe extract", 7.7, 5.0),
+    # 3 cards
+    cards = [
+        ("Q", "what we look for\n(query)",      Q_COL),
+        ("K", "where we look\n(addresses)",     K_COL),
+        ("V", "what we extract\n(contents)",    V_COL),
     ]
-    for i, (tx, ty, label, lx, ly) in enumerate(annotations):
-        # we have three labels for Q, K, V — they all sit on top of the equation
-        # (Q is at ~3.0, K at ~3.5, V at ~4.0 in the unscaled coords above —
-        # but layout depends on font width; instead, use the macro pattern of
-        # pointing at the (Q,K,V) tuple and the V at the end.
-        pass
+    for i, (letter, desc, col) in enumerate(cards):
+        cx = 2.5 + i * 4.0
+        # colored letter, large
+        ax.text(cx, 2.5, letter, fontsize=48, ha="center", va="center",
+                color=col, fontweight="bold")
+        # description
+        ax.text(cx, 1.55, desc, fontsize=14, ha="center", va="center",
+                color=DARK_HEX)
 
-    # Use one-shot manual placements that match the rendered equation visually:
-    # mathtext bbox is tight; the (Q,K,V) tuple appears around x=3.7..4.7,
-    # and the trailing V appears around x=9.2.
-    arrows = [
-        # Q — left of the tuple
-        dict(label="Q\nwhat we search for", lx=2.6, ly=4.9, tx=3.95, ty=3.30),
-        # K — middle of the tuple
-        dict(label="K\nwhere we look",       lx=5.4, ly=4.9, tx=4.55, ty=3.30),
-        # V — right of the tuple (and V at the end)
-        dict(label="V\ninformation we extract", lx=8.7, ly=4.9, tx=5.20, ty=3.30),
-    ]
-    for a in arrows:
-        ax.annotate(
-            a["label"],
-            xy=(a["tx"], a["ty"]),
-            xytext=(a["lx"], a["ly"]),
-            fontsize=15, ha="center", va="bottom",
-            color=NAVY_HEX, fontweight="bold",
-            arrowprops=dict(arrowstyle="->", color=NAVY_HEX, lw=1.6,
-                            connectionstyle="arc3,rad=-0.2"),
-        )
-
-    # bottom caption
-    ax.text(6.5, 0.9,
+    ax.text(6.5, 0.4,
             "Attention lets the model focus on important parts of the image.",
-            fontsize=18, ha="center", va="center",
-            color=DARK_HEX, style="italic")
+            fontsize=14, ha="center", va="center",
+            color=LIGHT_HEX, style="italic")
     return _save(fig, "math_attention.png")
 
 
 def fig_feedback_math():
-    """Feedback formula m' = m + g · Attn(m, t) with arrows to m, t, g."""
+    """Feedback formula centered, with three colored m/g/t cards below."""
     fig, ax = plt.subplots(figsize=(13, 5.6))
     ax.axis("off"); ax.set_xlim(0, 13); ax.set_ylim(0, 5.6)
 
-    # main equation
-    ax.text(6.5, 3.0,
-            r"$\mathbf{m}' \;=\; \mathbf{m} \;+\; \mathbf{g} \cdot "
+    M_COL = "#1F6FEB"
+    G_COL = "#FF7F0E"
+    T_COL = "#2CA02C"
+
+    # equation, single render
+    ax.text(6.5, 4.4,
+            r"$\mathbf{m}' \;=\; \mathbf{m} \;+\; g \cdot "
             r"\mathrm{Attn}(\mathbf{m},\, \mathbf{t})$",
-            fontsize=52, ha="center", va="center", color=DARK_HEX)
+            fontsize=48, ha="center", va="center", color=DARK_HEX)
 
-    # arrows
-    annots = [
-        # m on the left
-        dict(label="m\nencoder memory\n(features)",
-             lx=2.4, ly=4.9, tx=4.55, ty=3.25),
-        # g
-        dict(label="g\ngate\n(how much feedback)",
-             lx=6.4, ly=4.9, tx=6.55, ty=3.25),
-        # t
-        dict(label="t\ndecoder output\n(predictions)",
-             lx=10.4, ly=4.9, tx=9.05, ty=3.25),
+    cards = [
+        ("m", "encoder memory\n(image features)",     M_COL),
+        ("g", "gate\n(how much feedback)",            G_COL),
+        ("t", "decoder output\n(early predictions)",  T_COL),
     ]
-    for a in annots:
-        ax.annotate(
-            a["label"],
-            xy=(a["tx"], a["ty"]),
-            xytext=(a["lx"], a["ly"]),
-            fontsize=15, ha="center", va="bottom",
-            color=NAVY_HEX, fontweight="bold",
-            arrowprops=dict(arrowstyle="->", color=NAVY_HEX, lw=1.6,
-                            connectionstyle="arc3,rad=-0.2"),
-        )
+    for i, (letter, desc, col) in enumerate(cards):
+        cx = 2.5 + i * 4.0
+        ax.text(cx, 2.5, letter, fontsize=48, ha="center", va="center",
+                color=col, fontweight="bold")
+        ax.text(cx, 1.55, desc, fontsize=14, ha="center", va="center",
+                color=DARK_HEX)
 
-    ax.text(6.5, 0.9,
+    ax.text(6.5, 0.4,
             "We update the encoder using the decoder's own predictions.",
-            fontsize=18, ha="center", va="center",
-            color=DARK_HEX, style="italic")
+            fontsize=14, ha="center", va="center",
+            color=LIGHT_HEX, style="italic")
     return _save(fig, "math_feedback.png")
 
 
@@ -390,6 +366,81 @@ def render_all_figures():
 # ===========================================================================
 def add_blank_slide(prs):
     return prs.slides.add_slide(prs.slide_layouts[6])
+
+
+def _set_baseline(run, percent):
+    """Set sub/superscript via XML baseline shift (font-independent)."""
+    rPr = run._r.get_or_add_rPr()
+    rPr.set("baseline", str(int(percent)))
+
+
+def add_runs(slide, x, y, w, h, runs, *,
+             align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP,
+             default_size=18, default_color=DARK,
+             default_font="Helvetica"):
+    """Textbox with a list of styled runs.
+
+    Each run is a dict with keys: text, size, bold, color, italic, font,
+    subscript, superscript. Sub/superscript use real XML baseline shift
+    (renders correctly even when the font lacks Unicode subscript glyphs).
+    """
+    tb = slide.shapes.add_textbox(x, y, w, h)
+    tf = tb.text_frame
+    tf.word_wrap = True
+    tf.margin_left = Emu(0); tf.margin_right = Emu(0)
+    tf.margin_top = Emu(0); tf.margin_bottom = Emu(0)
+    tf.vertical_anchor = anchor
+    p = tf.paragraphs[0]
+    p.alignment = align
+    for r in runs:
+        run = p.add_run()
+        run.text = r["text"]
+        run.font.name = r.get("font", default_font)
+        run.font.size = Pt(r.get("size", default_size))
+        run.font.bold = r.get("bold", False)
+        run.font.italic = r.get("italic", False)
+        run.font.color.rgb = r.get("color", default_color)
+        if r.get("subscript"):
+            _set_baseline(run, -25000)
+        elif r.get("superscript"):
+            _set_baseline(run, 30000)
+    return tb
+
+
+def aps_runs(size, color=DARK, bold=False, italic=False, prefix="", suffix=""):
+    """Convenience: build runs for 'APₛ' with a real subscript S."""
+    runs = []
+    if prefix:
+        runs.append({"text": prefix, "size": size, "color": color,
+                     "bold": bold, "italic": italic})
+    runs += [
+        {"text": "AP", "size": size, "color": color,
+         "bold": bold, "italic": italic},
+        {"text": "S", "size": size, "color": color,
+         "bold": bold, "italic": italic, "subscript": True},
+    ]
+    if suffix:
+        runs.append({"text": suffix, "size": size, "color": color,
+                     "bold": bold, "italic": italic})
+    return runs
+
+
+def apl_runs(size, color=DARK, bold=False, italic=False, prefix="", suffix=""):
+    """Convenience: build runs for 'APₗ'."""
+    runs = []
+    if prefix:
+        runs.append({"text": prefix, "size": size, "color": color,
+                     "bold": bold, "italic": italic})
+    runs += [
+        {"text": "AP", "size": size, "color": color,
+         "bold": bold, "italic": italic},
+        {"text": "L", "size": size, "color": color,
+         "bold": bold, "italic": italic, "subscript": True},
+    ]
+    if suffix:
+        runs.append({"text": suffix, "size": size, "color": color,
+                     "bold": bold, "italic": italic})
+    return runs
 
 
 def add_text(slide, x, y, w, h, text, *,
@@ -521,12 +572,12 @@ def build():
     add_image(s, FIG_DIR / "viz_000000001000.png",
               Inches(0.7), Inches(1.7), w=Inches(7.0))
     # right: numbers
-    add_text(s, Inches(8.4), Inches(2.0), Inches(4.5), Inches(0.5),
-             "APₗ (large)", size=15, color=LIGHT)
+    add_runs(s, Inches(8.4), Inches(2.0), Inches(4.5), Inches(0.5),
+             apl_runs(15, color=LIGHT, suffix=" (large)"))
     add_text(s, Inches(8.4), Inches(2.4), Inches(4.5), Inches(1.4),
              "67.7", size=84, bold=True, color=GREEN)
-    add_text(s, Inches(8.4), Inches(4.0), Inches(4.5), Inches(0.5),
-             "APₛ (small)", size=15, color=LIGHT)
+    add_runs(s, Inches(8.4), Inches(4.0), Inches(4.5), Inches(0.5),
+             aps_runs(15, color=LIGHT, suffix=" (small)"))
     add_text(s, Inches(8.4), Inches(4.4), Inches(4.5), Inches(1.4),
              "34.7", size=84, bold=True, color=RED)
     add_text(s, Inches(8.4), Inches(6.0), Inches(4.5), Inches(0.6),
@@ -602,12 +653,12 @@ def build():
     add_text(s, Inches(7.6), Inches(1.95), Inches(5.0), Inches(0.5),
              "Why COCO?", size=18, bold=True, color=NAVY)
     why = [
-        "Standard benchmark — directly comparable to RT-DETR, DETR, YOLO.",
-        "Has explicit small / medium / large size buckets (APₛ / APₘ / APₗ).",
-        "~41% of annotated boxes are small (area < 32² px).",
-        "Same pre-training corpus as our baseline → fair comparison.",
+        ("Standard benchmark — directly comparable to RT-DETR, DETR, YOLO.", None),
+        ("Has explicit small / medium / large size buckets (S / M / L).", None),
+        ("~41% of annotated boxes are small (area < 32² px).", None),
+        ("Same pre-training corpus as our baseline → fair comparison.", None),
     ]
-    for i, line in enumerate(why):
+    for i, (line, _) in enumerate(why):
         add_text(s, Inches(7.6), Inches(2.6 + i * 0.85), Inches(5.0), Inches(0.8),
                  "•  " + line, size=14, color=DARK)
     add_footer(s, 7, TOTAL, section="2. Data Sourcing Strategy")
@@ -649,11 +700,13 @@ def build():
     add_text(s, Inches(0.7), Inches(1.55), Inches(12.0), Inches(0.5),
              "Plain sigmoid gate, applied to all four pyramid levels.",
              size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
-    # left: the result
-    add_text(s, Inches(0.7), Inches(2.6), Inches(5.6), Inches(2.0),
-             "Δ APₛ  =  0.00",
-             size=72, bold=True, color=RED, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(0.7), Inches(4.6), Inches(5.6), Inches(0.5),
+    # left: the result (real subscript via runs)
+    add_runs(s, Inches(0.4), Inches(2.8), Inches(6.4), Inches(1.6),
+             [{"text": "Δ AP", "size": 56, "bold": True, "color": RED},
+              {"text": "S",    "size": 56, "bold": True, "color": RED, "subscript": True},
+              {"text": "  =  0.00", "size": 56, "bold": True, "color": RED}],
+             align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.4), Inches(4.5), Inches(6.4), Inches(0.5),
              "the mechanism contributed nothing",
              size=15, color=LIGHT, align=PP_ALIGN.CENTER, italic=True)
     # right: explanation
@@ -692,12 +745,19 @@ def build():
     card_m.shadow.inherit = False
     add_text(s, Inches(0.95), Inches(1.7), Inches(5.6), Inches(0.4),
              "Metrics  (COCO standard)", size=13, bold=True, color=NAVY)
-    add_text(s, Inches(0.95), Inches(2.1), Inches(5.6), Inches(0.4),
-             "AP, APₛ, APₘ, APₗ  —  IoU 0.5..0.95",
-             size=13, color=DARK)
-    add_text(s, Inches(0.95), Inches(2.5), Inches(5.6), Inches(0.4),
-             "APₛ is the headline metric (area < 32² px)",
-             size=13, color=DARK, bold=True)
+    add_runs(s, Inches(0.95), Inches(2.1), Inches(5.6), Inches(0.4),
+             [{"text": "AP, AP", "size": 13, "color": DARK},
+              {"text": "S",      "size": 13, "color": DARK, "subscript": True},
+              {"text": ", AP",   "size": 13, "color": DARK},
+              {"text": "M",      "size": 13, "color": DARK, "subscript": True},
+              {"text": ", AP",   "size": 13, "color": DARK},
+              {"text": "L",      "size": 13, "color": DARK, "subscript": True},
+              {"text": "  —  IoU 0.5..0.95", "size": 13, "color": DARK}])
+    add_runs(s, Inches(0.95), Inches(2.5), Inches(5.6), Inches(0.4),
+             [{"text": "AP", "size": 13, "color": DARK, "bold": True},
+              {"text": "S",  "size": 13, "color": DARK, "bold": True, "subscript": True},
+              {"text": " is the headline metric (area < 32² px)",
+               "size": 13, "color": DARK, "bold": True}])
     add_text(s, Inches(0.95), Inches(2.9), Inches(5.6), Inches(0.4),
              "Others verify we don't degrade easier categories.",
              size=10, color=LIGHT, italic=True)
@@ -759,9 +819,9 @@ def build():
              "v1", size=24, color=LIGHT, align=PP_ALIGN.CENTER)
     add_text(s, Inches(1.0), Inches(2.95), Inches(5.3), Inches(2.0),
              "33.91", size=88, bold=True, color=LIGHT, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(1.0), Inches(5.0), Inches(5.3), Inches(0.5),
-             "APₛ",
-             size=18, color=LIGHT, align=PP_ALIGN.CENTER, italic=True)
+    add_runs(s, Inches(1.0), Inches(5.0), Inches(5.3), Inches(0.5),
+             aps_runs(18, color=LIGHT, italic=True),
+             align=PP_ALIGN.CENTER)
     # right card v2
     c2 = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
                              Inches(7.0), Inches(2.2), Inches(5.3), Inches(3.5))
@@ -772,9 +832,9 @@ def build():
              "v2", size=24, color=GREEN, align=PP_ALIGN.CENTER, bold=True)
     add_text(s, Inches(7.0), Inches(2.95), Inches(5.3), Inches(2.0),
              "34.30", size=88, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(7.0), Inches(5.0), Inches(5.3), Inches(0.5),
-             "APₛ    +0.4",
-             size=18, color=GREEN, align=PP_ALIGN.CENTER, italic=True)
+    add_runs(s, Inches(7.0), Inches(5.0), Inches(5.3), Inches(0.5),
+             aps_runs(18, color=GREEN, italic=True, suffix="    +0.4"),
+             align=PP_ALIGN.CENTER)
     add_footer(s, 18, TOTAL, section="5. Final Results")
 
     # ---------- 19. Causal result (the big one) ----------
@@ -833,10 +893,10 @@ def build():
     add_text(s, Inches(0.9), Inches(2.0), Inches(5.5), Inches(0.6),
              "+  Strengths", size=22, bold=True, color=GREEN)
     pluses = [
-        "Causal contribution: +0.99 APₛ on the same checkpoint.",
+        "Causal contribution: +0.99 on small-object AP, same checkpoint.",
         "Zero new parameters relative to v1.",
-        "Consistent improvement on every metric (AP, APₛ, APₘ, APₗ).",
-        "Robust at higher resolution (37.01 APₛ at 800×800).",
+        "Consistent improvement on every metric (AP, S, M, L).",
+        "Robust at higher resolution (37.01 small-object AP at 800×800).",
     ]
     for i, line in enumerate(pluses):
         add_text(s, Inches(0.95), Inches(2.7 + i * 0.85), Inches(5.5), Inches(0.8),
@@ -869,22 +929,25 @@ def build():
     add_text(s, Inches(0.7), Inches(1.55), Inches(12.0), Inches(0.5),
              "The 2× slowdown comes from the P2 level, not the feedback module.",
              size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
-    # 3 directions, navy-bordered cards
+    # 3 directions, each with a How: line and a Goal: line
     directions = [
-        ("Drop P2 at inference",
-         "Test whether the +0.99 transfers to the original 3-level (P3–P5) setup.\nIf it does → recover ~53 FPS at no accuracy cost.",
-         "fastest path"),
+        ("Train with P2, infer without",
+         "fastest path",
+         "Use P2 during training to improve small-object learning, then remove it at inference.",
+         "Keep most of the +0.99 small-object AP gain without the P2 computational cost."),
         ("Lighter P2 path",
-         "Halve P2 channels; or use a single-conv projection instead of\nthe full input-projection block.",
-         "compromise"),
-        ("Distill v2 → student",
-         "Knowledge-distil into a P3–P5 student network.\nTeacher: full v2.  Student: baseline RT-DETR speed.",
-         "principled"),
+         "compromise",
+         "Reduce the cost of P2 — fewer channels, or a simpler projection layer.",
+         "Preserve small-object improvements while reducing the high-resolution P2 slowdown."),
+        ("Knowledge distillation",
+         "principled",
+         "Transfer v2's small-object improvements into a faster baseline RT-DETR student.",
+         "Recover baseline inference speed while retaining the small-object AP gains learned from P2 feedback."),
     ]
-    for i, (head, body, tag) in enumerate(directions):
+    for i, (head, tag, how, goal) in enumerate(directions):
         x = Inches(0.7 + i * 4.15)
         card = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-                                   x, Inches(2.4), Inches(4.0), Inches(3.8))
+                                   x, Inches(2.4), Inches(4.0), Inches(4.0))
         card.fill.solid(); card.fill.fore_color.rgb = RGBColor(0xF0, 0xF6, 0xFF)
         card.line.color.rgb = NAVY; card.line.width = Pt(1.2)
         card.shadow.inherit = False
@@ -897,17 +960,24 @@ def build():
         add_text(s, x + Inches(0.2), Inches(2.58), Inches(0.5), Inches(0.5),
                  str(i + 1), size=18, bold=True, color=BG, align=PP_ALIGN.CENTER)
         # title
-        add_text(s, x + Inches(0.85), Inches(2.6), Inches(3.0), Inches(0.5),
-                 head, size=15, bold=True, color=DARK)
+        add_text(s, x + Inches(0.85), Inches(2.55), Inches(3.0), Inches(0.6),
+                 head, size=14, bold=True, color=DARK)
         # tag
-        add_text(s, x + Inches(0.2), Inches(3.2), Inches(3.6), Inches(0.4),
+        add_text(s, x + Inches(0.2), Inches(3.25), Inches(3.6), Inches(0.4),
                  tag, size=10, color=NAVY, italic=True, bold=True)
-        # body
-        add_text(s, x + Inches(0.2), Inches(3.7), Inches(3.6), Inches(2.2),
-                 body, size=12, color=DARK)
-    add_text(s, Inches(0.7), Inches(6.5), Inches(12.0), Inches(0.5),
-             "Goal: keep the +0.99 APₛ gain while approaching the 53 FPS baseline.",
-             size=14, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
+        # how
+        add_text(s, x + Inches(0.2), Inches(3.75), Inches(3.6), Inches(0.4),
+                 "How", size=11, bold=True, color=NAVY)
+        add_text(s, x + Inches(0.2), Inches(4.10), Inches(3.6), Inches(1.4),
+                 how, size=11, color=DARK)
+        # goal
+        add_text(s, x + Inches(0.2), Inches(5.30), Inches(3.6), Inches(0.4),
+                 "Goal", size=11, bold=True, color=GREEN)
+        add_text(s, x + Inches(0.2), Inches(5.65), Inches(3.6), Inches(1.4),
+                 goal, size=11, color=DARK)
+    add_text(s, Inches(0.7), Inches(6.7), Inches(12.0), Inches(0.4),
+             "Common goal: keep the +0.99 small-object AP gain while approaching the 53 FPS baseline.",
+             size=13, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
     add_footer(s, 22, TOTAL, section="5. Final Results")
 
     # ---------- 23. Conclusion ----------
@@ -915,7 +985,7 @@ def build():
     add_title(s, "Conclusion")
     bullets = [
         ("Feedback improves small-object detection",
-         "+0.99 APₛ causal contribution at inference."),
+         "+0.99 small-object AP, causal contribution at inference."),
         ("Only works with proper design",
          "Floor the gate; restrict to small-object levels."),
         ("Modest but real",
