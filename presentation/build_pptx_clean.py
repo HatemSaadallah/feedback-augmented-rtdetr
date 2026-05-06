@@ -68,6 +68,80 @@ def _save(fig, name):
     return out
 
 
+def fig_rtdetr_architecture():
+    """RT-DETR architecture: backbone + hybrid encoder + deformable decoder."""
+    fig, ax = plt.subplots(figsize=(13, 4.6))
+    ax.axis("off"); ax.set_xlim(0, 13); ax.set_ylim(0, 4.6)
+
+    # Image (left)
+    img = FancyBboxPatch((0.3, 1.6), 1.5, 1.4, boxstyle="round,pad=0.05",
+                          linewidth=2, edgecolor=DARK_HEX, facecolor="white")
+    ax.add_patch(img)
+    ax.text(1.05, 2.3, "Image", fontsize=15, ha="center", va="center",
+            color=DARK_HEX, fontweight="bold")
+    ax.text(1.05, 1.85, "640×640", fontsize=10, ha="center", color=LIGHT_HEX)
+
+    # Backbone (ResNet-50-vd)
+    bb = FancyBboxPatch((2.2, 0.9), 2.6, 2.8, boxstyle="round,pad=0.06",
+                         linewidth=2.5, edgecolor=NAVY_HEX, facecolor="#F0F6FF")
+    ax.add_patch(bb)
+    ax.text(3.5, 3.3, "Backbone", fontsize=13, ha="center",
+            color=NAVY_HEX, fontweight="bold")
+    ax.text(3.5, 2.95, "ResNet-50-vd", fontsize=11, ha="center", color=DARK_HEX)
+    # 4 pyramid output ticks
+    for i, (level, stride) in enumerate([("P2", "4"), ("P3", "8"),
+                                          ("P4", "16"), ("P5", "32")]):
+        ax.text(3.5, 2.5 - i * 0.4,
+                f"{level}  /  stride {stride}",
+                fontsize=10, ha="center", color=LIGHT_HEX, family="monospace")
+
+    # Hybrid Encoder (AIFI + CCFF)
+    enc = FancyBboxPatch((5.2, 0.9), 2.7, 2.8, boxstyle="round,pad=0.06",
+                          linewidth=2.5, edgecolor=NAVY_HEX, facecolor="#F0F6FF")
+    ax.add_patch(enc)
+    ax.text(6.55, 3.3, "Hybrid Encoder", fontsize=13, ha="center",
+            color=NAVY_HEX, fontweight="bold")
+    ax.text(6.55, 2.85, "AIFI", fontsize=11, ha="center", color=DARK_HEX,
+            fontweight="bold")
+    ax.text(6.55, 2.55, "(transformer on P5)", fontsize=9, ha="center",
+            color=LIGHT_HEX, style="italic")
+    ax.text(6.55, 2.05, "CCFF", fontsize=11, ha="center", color=DARK_HEX,
+            fontweight="bold")
+    ax.text(6.55, 1.75, "(cross-scale fusion)", fontsize=9, ha="center",
+            color=LIGHT_HEX, style="italic")
+    ax.text(6.55, 1.25, "→  memory  m", fontsize=10, ha="center",
+            color=NAVY_HEX, fontweight="bold")
+
+    # Decoder
+    dec = FancyBboxPatch((8.3, 0.9), 2.7, 2.8, boxstyle="round,pad=0.06",
+                          linewidth=2.5, edgecolor=NAVY_HEX, facecolor="#F0F6FF")
+    ax.add_patch(dec)
+    ax.text(9.65, 3.3, "Decoder", fontsize=13, ha="center",
+            color=NAVY_HEX, fontweight="bold")
+    ax.text(9.65, 2.85, "6 layers", fontsize=11, ha="center", color=DARK_HEX)
+    ax.text(9.65, 2.45, "deformable", fontsize=11, ha="center", color=DARK_HEX)
+    ax.text(9.65, 2.10, "cross-attention", fontsize=11, ha="center", color=DARK_HEX)
+    ax.text(9.65, 1.55, "N object queries", fontsize=10, ha="center",
+            color=LIGHT_HEX, style="italic")
+    ax.text(9.65, 1.20, "Hungarian match → loss", fontsize=9, ha="center",
+            color=LIGHT_HEX, style="italic")
+
+    # Predictions
+    out = FancyBboxPatch((11.3, 1.6), 1.5, 1.4, boxstyle="round,pad=0.05",
+                         linewidth=2, edgecolor=DARK_HEX, facecolor="white")
+    ax.add_patch(out)
+    ax.text(12.05, 2.3, "Boxes +", fontsize=13, ha="center", va="center",
+            color=DARK_HEX, fontweight="bold")
+    ax.text(12.05, 1.95, "classes", fontsize=13, ha="center", va="center",
+            color=DARK_HEX, fontweight="bold")
+
+    # arrows
+    for x_end, x_start in [(1.8, 2.2), (4.8, 5.2), (7.9, 8.3), (11.0, 11.3)]:
+        ax.annotate("", xy=(x_start, 2.3), xytext=(x_end, 2.3),
+                    arrowprops=dict(arrowstyle="->", lw=2.5, color=DARK_HEX))
+    return _save(fig, "diag_rtdetr.png")
+
+
 def fig_baseline_pipeline():
     """Image → Encoder → Decoder → Predictions, single-pass."""
     fig, ax = plt.subplots(figsize=(11, 2.4))
@@ -301,6 +375,7 @@ def fig_ablation_explainer():
 def render_all_figures():
     rcParams["mathtext.fontset"] = "cm"
     print("Rendering matplotlib diagrams + math...")
+    fig_rtdetr_architecture()
     fig_baseline_pipeline()
     fig_idea_pipeline()
     fig_attention_math()
@@ -359,16 +434,38 @@ def add_image(slide, path, x, y, w=None, h=None):
     return slide.shapes.add_picture(str(path), x, y)
 
 
-def add_footer(slide, idx, total):
-    add_text(slide, Inches(0.7), Inches(7.05), Inches(8.0), Inches(0.3),
-             "Feedback-Augmented RT-DETR  •  Hatem Saadallah & Nour Jennane",
-             size=10, color=LIGHT)
+def add_footer(slide, idx, total, section=None):
+    left = "Feedback-Augmented RT-DETR  •  Hatem Saadallah & Nour Jennane"
+    if section is not None:
+        left = f"{section}  •  {left}"
+    add_text(slide, Inches(0.7), Inches(7.05), Inches(10.0), Inches(0.3),
+             left, size=10, color=LIGHT)
     add_text(slide, Inches(11.5), Inches(7.05), Inches(1.2), Inches(0.3),
              f"{idx} / {total}", size=10, color=LIGHT, align=PP_ALIGN.RIGHT)
 
 
+def add_section_divider(prs, num, total_sections, title, subtitle):
+    s = add_blank_slide(prs)
+    # SECTION X / N (small caps top-left)
+    add_text(s, Inches(0.8), Inches(2.6), Inches(11.7), Inches(0.4),
+             f"SECTION  {num}  /  {total_sections}",
+             size=14, bold=True, color=NAVY)
+    # accent bar
+    bar = s.shapes.add_shape(MSO_SHAPE.RECTANGLE,
+                              Inches(0.8), Inches(3.05), Inches(0.7), Inches(0.06))
+    bar.fill.solid(); bar.fill.fore_color.rgb = NAVY
+    bar.line.fill.background()
+    # section title (huge)
+    add_text(s, Inches(0.8), Inches(3.25), Inches(11.7), Inches(1.2),
+             title, size=54, bold=True, color=DARK)
+    # subtitle (one-line preview of what's coming)
+    add_text(s, Inches(0.8), Inches(4.6), Inches(11.7), Inches(0.6),
+             subtitle, size=20, color=LIGHT, italic=True)
+    return s
+
+
 # ===========================================================================
-# Build the deck (18 slides)
+# Build the deck (rule-aligned 5-section structure)
 # ===========================================================================
 def build():
     on  = json.load(open(V2_DIR / "ablations" / "ablation_v2_feedback_on_640.json"))
@@ -382,7 +479,8 @@ def build():
     prs = Presentation()
     prs.slide_width = SLIDE_W
     prs.slide_height = SLIDE_H
-    TOTAL = 18
+    TOTAL = 24
+    SEC = "1. Problem Formulation"  # current section label, mutated below
 
     # ---------- 1. Title ----------
     s = add_blank_slide(prs)
@@ -409,7 +507,14 @@ def build():
              "Final Project  ·  April 2026",
              size=14, color=LIGHT)
 
-    # ---------- 2. Problem ----------
+    # ====================================================================
+    # SECTION 1 — Problem Formulation
+    # ====================================================================
+    add_section_divider(prs, 1, 5, "Problem Formulation",
+                        "What is small-object detection, and why does RT-DETR struggle?")
+    add_footer(prs.slides[-1], 2, TOTAL, section="1. Problem Formulation")
+
+    # ---------- 3. Problem ----------
     s = add_blank_slide(prs)
     add_title(s, "Small objects are harder to detect")
     # left: viz
@@ -427,19 +532,94 @@ def build():
     add_text(s, Inches(8.4), Inches(6.0), Inches(4.5), Inches(0.6),
              "33-point gap. Why?",
              size=18, color=DARK, italic=True)
-    add_footer(s, 2, TOTAL)
+    add_footer(s, 3, TOTAL, section="1. Problem Formulation")
 
-    # ---------- 3. Baseline model ----------
+    # ---------- 4. RT-DETR architecture ----------
     s = add_blank_slide(prs)
-    add_title(s, "Baseline RT-DETR")
+    add_title(s, "RT-DETR: backbone → encoder → decoder")
+    add_image(s, BUILD / "diag_rtdetr.png",
+              Inches(0.4), Inches(1.6), w=Inches(12.5))
+    add_text(s, Inches(0.7), Inches(5.6), Inches(12.0), Inches(0.5),
+             "End-to-end, NMS-free. Six decoder layers all attend over the same encoder memory.",
+             size=18, color=DARK, align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.7), Inches(6.3), Inches(12.0), Inches(0.4),
+             "Backbone extracts a feature pyramid (P2–P5); the hybrid encoder fuses scales; the decoder cross-attends.",
+             size=12, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
+    add_footer(s, 4, TOTAL, section="1. Problem Formulation")
+
+    # ---------- 5. Why? structural one-way ----------
+    s = add_blank_slide(prs)
+    add_title(s, "The reason is structural")
     add_image(s, BUILD / "diag_baseline.png",
               Inches(0.8), Inches(2.5), w=Inches(11.7))
     add_text(s, Inches(0.7), Inches(5.5), Inches(12.0), Inches(0.6),
              "Encoder memory is computed once. The decoder cannot revise it.",
              size=22, color=DARK, align=PP_ALIGN.CENTER)
-    add_footer(s, 3, TOTAL)
+    add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.5),
+             "Refinement of the features small objects live in is a one-way street.",
+             size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
+    add_footer(s, 5, TOTAL, section="1. Problem Formulation")
 
-    # ---------- 4. Our idea ----------
+    # ====================================================================
+    # SECTION 2 — Data Sourcing Strategy
+    # ====================================================================
+    add_section_divider(prs, 2, 5, "Data Sourcing Strategy",
+                        "What dataset we used and why it is appropriate.")
+    add_footer(prs.slides[-1], 6, TOTAL, section="2. Data Sourcing Strategy")
+
+    # ---------- 6. COCO 2017 ----------
+    s = add_blank_slide(prs)
+    add_title(s, "COCO 2017 — the standard small-object benchmark")
+    # left card: dataset facts
+    card = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                               Inches(0.7), Inches(1.7), Inches(6.3), Inches(4.6))
+    card.fill.solid(); card.fill.fore_color.rgb = RGBColor(0xF5, 0xF5, 0xF7)
+    card.line.color.rgb = LIGHT; card.line.width = Pt(0.75)
+    card.shadow.inherit = False
+    add_text(s, Inches(0.95), Inches(1.95), Inches(5.85), Inches(0.5),
+             "Dataset", size=14, bold=True, color=NAVY)
+    add_text(s, Inches(0.95), Inches(2.45), Inches(5.85), Inches(0.5),
+             "Microsoft COCO 2017", size=24, bold=True, color=DARK)
+    add_text(s, Inches(0.95), Inches(3.1), Inches(5.85), Inches(0.5),
+             "Splits", size=14, bold=True, color=NAVY)
+    add_text(s, Inches(0.95), Inches(3.55), Inches(5.85), Inches(0.5),
+             "train2017:  118k images, 860k boxes",
+             size=15, color=DARK, font="Menlo")
+    add_text(s, Inches(0.95), Inches(3.95), Inches(5.85), Inches(0.5),
+             "val2017:        5k images   (held out)",
+             size=15, color=DARK, font="Menlo")
+    add_text(s, Inches(0.95), Inches(4.7), Inches(5.85), Inches(0.5),
+             "Pre-trained weights", size=14, bold=True, color=NAVY)
+    add_text(s, Inches(0.95), Inches(5.15), Inches(5.85), Inches(0.5),
+             "rtdetr_r50vd_6x_coco.pth  (public, finetuned 13 ep)",
+             size=13, color=DARK, font="Menlo")
+    # right card: why
+    card2 = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                Inches(7.4), Inches(1.7), Inches(5.3), Inches(4.6))
+    card2.fill.solid(); card2.fill.fore_color.rgb = RGBColor(0xE8, 0xF1, 0xFF)
+    card2.line.color.rgb = NAVY; card2.line.width = Pt(1.5)
+    card2.shadow.inherit = False
+    add_text(s, Inches(7.6), Inches(1.95), Inches(5.0), Inches(0.5),
+             "Why COCO?", size=18, bold=True, color=NAVY)
+    why = [
+        "Standard benchmark — directly comparable to RT-DETR, DETR, YOLO.",
+        "Has explicit small / medium / large size buckets (APₛ / APₘ / APₗ).",
+        "~41% of annotated boxes are small (area < 32² px).",
+        "Same pre-training corpus as our baseline → fair comparison.",
+    ]
+    for i, line in enumerate(why):
+        add_text(s, Inches(7.6), Inches(2.6 + i * 0.85), Inches(5.0), Inches(0.8),
+                 "•  " + line, size=14, color=DARK)
+    add_footer(s, 7, TOTAL, section="2. Data Sourcing Strategy")
+
+    # ====================================================================
+    # SECTION 3 — Proposed Solution
+    # ====================================================================
+    add_section_divider(prs, 3, 5, "Proposed Solution",
+                        "The feedback module, the math behind it, and the two fixes that make it work.")
+    add_footer(prs.slides[-1], 8, TOTAL, section="3. Proposed Solution")
+
+    # ---------- 8. Our idea ----------
     s = add_blank_slide(prs)
     add_title(s, "Our idea: let the model refine its own features")
     add_image(s, BUILD / "diag_idea.png",
@@ -447,60 +627,116 @@ def build():
     add_text(s, Inches(0.7), Inches(5.7), Inches(12.0), Inches(0.6),
              "Feed early decoder predictions back into the encoder memory.",
              size=22, color=DARK, align=PP_ALIGN.CENTER)
-    add_footer(s, 4, TOTAL)
+    add_footer(s, 9, TOTAL, section="3. Proposed Solution")
 
-    # ---------- 5. MATH 1: Attention ----------
+    # ---------- 10. MATH 1: Attention ----------
     s = add_blank_slide(prs)
     add_title(s, "Attention, in one line")
     add_image(s, BUILD / "math_attention.png",
               Inches(0.5), Inches(1.5), w=Inches(12.3))
-    add_footer(s, 5, TOTAL)
+    add_footer(s, 10, TOTAL, section="3. Proposed Solution")
 
-    # ---------- 6. MATH 2: Feedback formula ----------
+    # ---------- 11. MATH 2: Feedback formula ----------
     s = add_blank_slide(prs)
     add_title(s, "Our feedback rule")
     add_image(s, BUILD / "math_feedback.png",
               Inches(0.5), Inches(1.5), w=Inches(12.3))
-    add_footer(s, 6, TOTAL)
+    add_footer(s, 11, TOTAL, section="3. Proposed Solution")
 
-    # ---------- 7. v1 first attempt ----------
+    # ---------- 12. v1 first attempt + why it failed (combined) ----------
     s = add_blank_slide(prs)
-    add_title(s, "First attempt (v1)")
-    add_text(s, Inches(0.7), Inches(2.0), Inches(12.0), Inches(0.6),
-             "Add the feedback module. Train. Toggle it off at inference.",
-             size=22, color=DARK, align=PP_ALIGN.CENTER, italic=True)
-    add_text(s, Inches(0.7), Inches(3.6), Inches(12.0), Inches(2.0),
+    add_title(s, "First attempt (v1) — and why it failed")
+    add_text(s, Inches(0.7), Inches(1.55), Inches(12.0), Inches(0.5),
+             "Plain sigmoid gate, applied to all four pyramid levels.",
+             size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
+    # left: the result
+    add_text(s, Inches(0.7), Inches(2.6), Inches(5.6), Inches(2.0),
              "Δ APₛ  =  0.00",
-             size=110, bold=True, color=RED, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(0.7), Inches(5.9), Inches(12.0), Inches(0.5),
-             "The mechanism contributed nothing.",
-             size=20, color=DARK, align=PP_ALIGN.CENTER)
-    add_footer(s, 7, TOTAL)
-
-    # ---------- 8. Why v1 failed ----------
-    s = add_blank_slide(prs)
-    add_title(s, "Why v1 failed: the gate collapsed")
-    add_image(s, FIG_DIR / "gate_reparam.png",
-              Inches(4.5), Inches(1.6), w=Inches(8.5))
-    add_text(s, Inches(0.6), Inches(2.4), Inches(3.8), Inches(0.5),
-             "Plain sigmoid gate.",
-             size=22, bold=True, color=DARK)
-    add_text(s, Inches(0.6), Inches(3.0), Inches(3.8), Inches(2.5),
-             "α drifts to −∞ → gate ≈ 0\n\nFeedback signal is multiplied by zero before reaching memory.",
+             size=72, bold=True, color=RED, align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.7), Inches(4.6), Inches(5.6), Inches(0.5),
+             "the mechanism contributed nothing",
+             size=15, color=LIGHT, align=PP_ALIGN.CENTER, italic=True)
+    # right: explanation
+    add_text(s, Inches(7.1), Inches(2.5), Inches(5.6), Inches(0.6),
+             "Why?", size=24, bold=True, color=DARK)
+    add_text(s, Inches(7.1), Inches(3.1), Inches(5.6), Inches(2.5),
+             "α drifts to −∞ → gate ≈ 0.\n\nThe feedback signal is multiplied by zero before reaching memory.",
              size=15, color=DARK)
-    add_footer(s, 8, TOTAL)
+    add_footer(s, 12, TOTAL, section="3. Proposed Solution")
 
-    # ---------- 9. Our fix (v2) ----------
+    # ---------- 13. v2 fixes ----------
     s = add_blank_slide(prs)
-    add_title(s, "Two fixes — zero new parameters")
+    add_title(s, "v2: two fixes — zero new parameters")
     add_image(s, BUILD / "diag_v2_fixes.png",
               Inches(1.0), Inches(2.2), w=Inches(11.3))
     add_text(s, Inches(0.7), Inches(6.1), Inches(12.0), Inches(0.5),
              "Reparameterize the gate. Refine only the levels small objects live in.",
              size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 9, TOTAL)
+    add_footer(s, 13, TOTAL, section="3. Proposed Solution")
 
-    # ---------- 10. Training results ----------
+    # ====================================================================
+    # SECTION 4 — Performance Evaluation Approach
+    # ====================================================================
+    add_section_divider(prs, 4, 5, "Performance Evaluation Approach",
+                        "Metrics, baselines, and the same-checkpoint ablation that isolates causality.")
+    add_footer(prs.slides[-1], 14, TOTAL, section="4. Evaluation Approach")
+
+    # ---------- 15. Metrics + protocol ----------
+    s = add_blank_slide(prs)
+    add_title(s, "How we evaluate the contribution")
+    # top-left: metrics card (compacted)
+    card_m = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                 Inches(0.7), Inches(1.55), Inches(6.0), Inches(1.85))
+    card_m.fill.solid(); card_m.fill.fore_color.rgb = RGBColor(0xF5, 0xF5, 0xF7)
+    card_m.line.color.rgb = LIGHT; card_m.line.width = Pt(0.75)
+    card_m.shadow.inherit = False
+    add_text(s, Inches(0.95), Inches(1.7), Inches(5.6), Inches(0.4),
+             "Metrics  (COCO standard)", size=13, bold=True, color=NAVY)
+    add_text(s, Inches(0.95), Inches(2.1), Inches(5.6), Inches(0.4),
+             "AP, APₛ, APₘ, APₗ  —  IoU 0.5..0.95",
+             size=13, color=DARK)
+    add_text(s, Inches(0.95), Inches(2.5), Inches(5.6), Inches(0.4),
+             "APₛ is the headline metric (area < 32² px)",
+             size=13, color=DARK, bold=True)
+    add_text(s, Inches(0.95), Inches(2.9), Inches(5.6), Inches(0.4),
+             "Others verify we don't degrade easier categories.",
+             size=10, color=LIGHT, italic=True)
+    # top-right: baselines card (compacted)
+    card_b = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                 Inches(7.0), Inches(1.55), Inches(5.6), Inches(1.85))
+    card_b.fill.solid(); card_b.fill.fore_color.rgb = RGBColor(0xF5, 0xF5, 0xF7)
+    card_b.line.color.rgb = LIGHT; card_b.line.width = Pt(0.75)
+    card_b.shadow.inherit = False
+    add_text(s, Inches(7.25), Inches(1.7), Inches(5.2), Inches(0.4),
+             "Baselines", size=13, bold=True, color=NAVY)
+    add_text(s, Inches(7.25), Inches(2.1), Inches(5.2), Inches(0.4),
+             "RT-DETR-R50  (published)",
+             size=13, color=DARK)
+    add_text(s, Inches(7.25), Inches(2.5), Inches(5.2), Inches(0.4),
+             "v1 feedback  (before the fix)",
+             size=13, color=DARK)
+    add_text(s, Inches(7.25), Inches(2.9), Inches(5.2), Inches(0.4),
+             "v2 feedback  (with the fix)",
+             size=13, color=DARK, bold=True)
+    # bottom: the ablation diagram (centered, smaller)
+    add_text(s, Inches(0.7), Inches(3.65), Inches(12.0), Inches(0.5),
+             "Same-checkpoint ablation  —  isolates causal contribution",
+             size=18, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
+    add_image(s, BUILD / "diag_ablation.png",
+              Inches(2.4), Inches(4.2), w=Inches(8.5))
+    add_text(s, Inches(0.7), Inches(6.65), Inches(12.0), Inches(0.4),
+             "Toggle feedback ON / OFF at inference. Identical weights, identical inputs.",
+             size=12, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
+    add_footer(s, 15, TOTAL, section="4. Evaluation Approach")
+
+    # ====================================================================
+    # SECTION 5 — Final Results
+    # ====================================================================
+    add_section_divider(prs, 5, 5, "Final Results",
+                        "Training trajectory, the causal effect, robustness, trade-offs, and what's next.")
+    add_footer(prs.slides[-1], 16, TOTAL, section="5. Final Results")
+
+    # ---------- 17. Training trajectory ----------
     s = add_blank_slide(prs)
     add_title(s, "Training: v2 climbs faster, ends higher")
     add_image(s, FIG_DIR / "learning_curves.png",
@@ -508,12 +744,12 @@ def build():
     add_text(s, Inches(0.7), Inches(6.4), Inches(12.0), Inches(0.4),
              "v2 first crosses v1's final 33.91 at epoch 8 — four epochs early.",
              size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 10, TOTAL)
+    add_footer(s, 17, TOTAL, section="5. Final Results")
 
-    # ---------- 11. Final performance ----------
+    # ---------- 18. Final scores (v1 vs v2 with feedback ON) ----------
     s = add_blank_slide(prs)
     add_title(s, "Final performance (with feedback ON)")
-    # left card
+    # left card v1
     c1 = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
                              Inches(1.0), Inches(2.2), Inches(5.3), Inches(3.5))
     c1.fill.solid(); c1.fill.fore_color.rgb = RGBColor(0xF5, 0xF5, 0xF7)
@@ -526,7 +762,7 @@ def build():
     add_text(s, Inches(1.0), Inches(5.0), Inches(5.3), Inches(0.5),
              "APₛ",
              size=18, color=LIGHT, align=PP_ALIGN.CENTER, italic=True)
-    # right card
+    # right card v2
     c2 = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
                              Inches(7.0), Inches(2.2), Inches(5.3), Inches(3.5))
     c2.fill.solid(); c2.fill.fore_color.rgb = RGBColor(0xE8, 0xF7, 0xE8)
@@ -539,22 +775,11 @@ def build():
     add_text(s, Inches(7.0), Inches(5.0), Inches(5.3), Inches(0.5),
              "APₛ    +0.4",
              size=18, color=GREEN, align=PP_ALIGN.CENTER, italic=True)
-    add_footer(s, 11, TOTAL)
+    add_footer(s, 18, TOTAL, section="5. Final Results")
 
-    # ---------- 12. Ablation explained ----------
-    s = add_blank_slide(prs)
-    add_title(s, "Ablation: same model, only the switch changes")
-    add_image(s, BUILD / "diag_ablation.png",
-              Inches(1.0), Inches(2.5), w=Inches(11.3))
-    add_text(s, Inches(0.7), Inches(6.0), Inches(12.0), Inches(0.5),
-             "Toggle feedback ON or OFF at inference. Everything else identical.",
-             size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 12, TOTAL)
-
-    # ---------- 13. Causal result (BIG) ----------
+    # ---------- 19. Causal result (the big one) ----------
     s = add_blank_slide(prs)
     add_title(s, "Causal effect of feedback")
-    # 3 columns: ON, OFF, Δ
     cols = [
         ("ON",  f"{APS_ON:.2f}",  GREEN, "feedback enabled"),
         ("OFF", f"{APS_OFF:.2f}", LIGHT, "feedback bypassed"),
@@ -569,24 +794,21 @@ def build():
         add_text(s, x, Inches(5.2), Inches(4.0), Inches(0.5),
                  sub, size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
     add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.6),
-             "Feedback has a real causal impact.",
+             "Feedback has a real causal impact on small-object detection.",
              size=22, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
-    add_footer(s, 13, TOTAL)
+    add_footer(s, 19, TOTAL, section="5. Final Results")
 
-    # ---------- 14. Resolution effect ----------
+    # ---------- 20. Resolution effect ----------
     s = add_blank_slide(prs)
     add_title(s, "Higher resolution → bigger gain")
-    # left
     add_text(s, Inches(0.7), Inches(2.4), Inches(5.8), Inches(0.5),
              "640 × 640", size=22, color=LIGHT, align=PP_ALIGN.CENTER)
     add_text(s, Inches(0.7), Inches(3.0), Inches(5.8), Inches(2.0),
              f"{APS_ON:.2f}", size=88, bold=True, color=DARK, align=PP_ALIGN.CENTER)
-    # arrow
     arr = s.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW,
                               Inches(5.8), Inches(3.6), Inches(1.7), Inches(0.6))
     arr.fill.solid(); arr.fill.fore_color.rgb = NAVY
     arr.line.fill.background()
-    # right
     add_text(s, Inches(6.8), Inches(2.4), Inches(5.8), Inches(0.5),
              "800 × 800", size=22, color=NAVY, align=PP_ALIGN.CENTER, bold=True)
     add_text(s, Inches(6.8), Inches(3.0), Inches(5.8), Inches(2.0),
@@ -597,42 +819,98 @@ def build():
     add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.5),
              "Feedback helps. Spatial sampling helps too.",
              size=16, color=LIGHT, align=PP_ALIGN.CENTER)
-    add_footer(s, 14, TOTAL)
+    add_footer(s, 20, TOTAL, section="5. Final Results")
 
-    # ---------- 15. Trade-offs ----------
+    # ---------- 21. Strengths + Limitations (combined) ----------
     s = add_blank_slide(prs)
-    add_title(s, "Trade-offs")
+    add_title(s, "Strengths and limitations")
     # green +
     plus = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-                               Inches(1.0), Inches(2.5), Inches(5.3), Inches(3.5))
+                               Inches(0.7), Inches(1.8), Inches(5.9), Inches(4.7))
     plus.fill.solid(); plus.fill.fore_color.rgb = RGBColor(0xE8, 0xF7, 0xE8)
     plus.line.color.rgb = GREEN; plus.line.width = Pt(1.5)
     plus.shadow.inherit = False
-    add_text(s, Inches(1.0), Inches(2.7), Inches(5.3), Inches(1.0),
-             "+", size=88, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(1.0), Inches(4.3), Inches(5.3), Inches(0.6),
-             "Better small-object detection",
-             size=22, bold=True, color=DARK, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(1.0), Inches(5.1), Inches(5.3), Inches(0.5),
-             "+0.99 APₛ causal contribution",
-             size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.9), Inches(2.0), Inches(5.5), Inches(0.6),
+             "+  Strengths", size=22, bold=True, color=GREEN)
+    pluses = [
+        "Causal contribution: +0.99 APₛ on the same checkpoint.",
+        "Zero new parameters relative to v1.",
+        "Consistent improvement on every metric (AP, APₛ, APₘ, APₗ).",
+        "Robust at higher resolution (37.01 APₛ at 800×800).",
+    ]
+    for i, line in enumerate(pluses):
+        add_text(s, Inches(0.95), Inches(2.7 + i * 0.85), Inches(5.5), Inches(0.8),
+                 "•  " + line, size=14, color=DARK)
     # red −
     minus = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-                                Inches(7.0), Inches(2.5), Inches(5.3), Inches(3.5))
+                                Inches(6.8), Inches(1.8), Inches(5.9), Inches(4.7))
     minus.fill.solid(); minus.fill.fore_color.rgb = RGBColor(0xFD, 0xEC, 0xEC)
     minus.line.color.rgb = RED; minus.line.width = Pt(1.5)
     minus.shadow.inherit = False
-    add_text(s, Inches(7.0), Inches(2.7), Inches(5.3), Inches(1.0),
-             "−", size=88, bold=True, color=RED, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(7.0), Inches(4.3), Inches(5.3), Inches(0.6),
-             "Slower inference (FPS drops)",
-             size=22, bold=True, color=DARK, align=PP_ALIGN.CENTER)
-    add_text(s, Inches(7.0), Inches(5.1), Inches(5.3), Inches(0.5),
-             "53 FPS → 26 FPS  (cost is the P2 level, not feedback)",
-             size=14, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
-    add_footer(s, 15, TOTAL)
+    add_text(s, Inches(7.0), Inches(2.0), Inches(5.5), Inches(0.6),
+             "−  Limitations", size=22, bold=True, color=RED)
+    minuses = [
+        "Single seed — multi-seed variance unmeasured.",
+        "13-epoch finetune (vs 72-epoch from scratch).",
+        "Floor and mask not isolated (a 2×2 ablation is missing).",
+        "≈2× slower than baseline (53 → 26 FPS) — cost is the P2 level.",
+    ]
+    for i, line in enumerate(minuses):
+        add_text(s, Inches(7.05), Inches(2.7 + i * 0.85), Inches(5.5), Inches(0.8),
+                 "•  " + line, size=14, color=DARK)
+    add_text(s, Inches(0.7), Inches(6.65), Inches(12.0), Inches(0.4),
+             "Strong on accuracy; pays in inference speed. The next slide proposes a way to recover speed.",
+             size=12, color=LIGHT, italic=True, align=PP_ALIGN.CENTER)
+    add_footer(s, 21, TOTAL, section="5. Final Results")
 
-    # ---------- 16. Conclusion ----------
+    # ---------- 22. Future work — recovering FPS (NEW) ----------
+    s = add_blank_slide(prs)
+    add_title(s, "Future work: recovering inference speed")
+    add_text(s, Inches(0.7), Inches(1.55), Inches(12.0), Inches(0.5),
+             "The 2× slowdown comes from the P2 level, not the feedback module.",
+             size=18, color=DARK, italic=True, align=PP_ALIGN.CENTER)
+    # 3 directions, navy-bordered cards
+    directions = [
+        ("Drop P2 at inference",
+         "Test whether the +0.99 transfers to the original 3-level (P3–P5) setup.\nIf it does → recover ~53 FPS at no accuracy cost.",
+         "fastest path"),
+        ("Lighter P2 path",
+         "Halve P2 channels; or use a single-conv projection instead of\nthe full input-projection block.",
+         "compromise"),
+        ("Distill v2 → student",
+         "Knowledge-distil into a P3–P5 student network.\nTeacher: full v2.  Student: baseline RT-DETR speed.",
+         "principled"),
+    ]
+    for i, (head, body, tag) in enumerate(directions):
+        x = Inches(0.7 + i * 4.15)
+        card = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                   x, Inches(2.4), Inches(4.0), Inches(3.8))
+        card.fill.solid(); card.fill.fore_color.rgb = RGBColor(0xF0, 0xF6, 0xFF)
+        card.line.color.rgb = NAVY; card.line.width = Pt(1.2)
+        card.shadow.inherit = False
+        # number badge
+        circ = s.shapes.add_shape(MSO_SHAPE.OVAL,
+                                   x + Inches(0.2), Inches(2.55),
+                                   Inches(0.5), Inches(0.5))
+        circ.fill.solid(); circ.fill.fore_color.rgb = NAVY
+        circ.line.fill.background()
+        add_text(s, x + Inches(0.2), Inches(2.58), Inches(0.5), Inches(0.5),
+                 str(i + 1), size=18, bold=True, color=BG, align=PP_ALIGN.CENTER)
+        # title
+        add_text(s, x + Inches(0.85), Inches(2.6), Inches(3.0), Inches(0.5),
+                 head, size=15, bold=True, color=DARK)
+        # tag
+        add_text(s, x + Inches(0.2), Inches(3.2), Inches(3.6), Inches(0.4),
+                 tag, size=10, color=NAVY, italic=True, bold=True)
+        # body
+        add_text(s, x + Inches(0.2), Inches(3.7), Inches(3.6), Inches(2.2),
+                 body, size=12, color=DARK)
+    add_text(s, Inches(0.7), Inches(6.5), Inches(12.0), Inches(0.5),
+             "Goal: keep the +0.99 APₛ gain while approaching the 53 FPS baseline.",
+             size=14, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
+    add_footer(s, 22, TOTAL, section="5. Final Results")
+
+    # ---------- 23. Conclusion ----------
     s = add_blank_slide(prs)
     add_title(s, "Conclusion")
     bullets = [
@@ -645,7 +923,6 @@ def build():
     ]
     for i, (head, sub) in enumerate(bullets):
         y = Inches(2.0 + i * 1.55)
-        # navy circle
         circ = s.shapes.add_shape(MSO_SHAPE.OVAL,
                                    Inches(0.9), y + Inches(0.15),
                                    Inches(0.55), Inches(0.55))
@@ -657,32 +934,9 @@ def build():
                  head, size=24, bold=True, color=DARK)
         add_text(s, Inches(1.7), y + Inches(0.7), Inches(11.0), Inches(0.6),
                  sub, size=15, color=LIGHT, italic=True)
-    add_footer(s, 16, TOTAL)
+    add_footer(s, 23, TOTAL, section="5. Final Results")
 
-    # ---------- 17. Limitations ----------
-    s = add_blank_slide(prs)
-    add_title(s, "Limitations")
-    items = [
-        ("Single training run", "no multi-seed variance"),
-        ("Below paper baseline",  "13-epoch finetune vs 72-epoch from scratch"),
-        ("Increased latency",  "~2× slower (cost is the P2 level)"),
-    ]
-    for i, (head, sub) in enumerate(items):
-        y = Inches(2.0 + i * 1.55)
-        circ = s.shapes.add_shape(MSO_SHAPE.OVAL,
-                                   Inches(0.9), y + Inches(0.18),
-                                   Inches(0.5), Inches(0.5))
-        circ.fill.solid(); circ.fill.fore_color.rgb = LIGHT
-        circ.line.fill.background()
-        add_text(s, Inches(0.9), y + Inches(0.21), Inches(0.5), Inches(0.5),
-                 "—", size=20, bold=True, color=BG, align=PP_ALIGN.CENTER)
-        add_text(s, Inches(1.7), y + Inches(0.05), Inches(11.0), Inches(0.6),
-                 head, size=24, bold=True, color=DARK)
-        add_text(s, Inches(1.7), y + Inches(0.7), Inches(11.0), Inches(0.6),
-                 sub, size=15, color=LIGHT, italic=True)
-    add_footer(s, 17, TOTAL)
-
-    # ---------- 18. Thank you ----------
+    # ---------- 24. Thank you ----------
     s = add_blank_slide(prs)
     add_text(s, Inches(0.7), Inches(2.4), Inches(12.0), Inches(1.5),
              "Thank you.",
