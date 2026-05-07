@@ -244,13 +244,17 @@
     \begin{columns}[c, onlytextwidth]
         \column{0.55\textwidth}
         \centering
-        \begin{tikzpicture}
-            \node[font=\fontsize{44}{50}\selectfont\bfseries,
-                  color=BadRed] (val) {$\Delta\mathrm{AP}_S \;=\; 0.00$};
-            % Spotlight on second click: red oval around the 0.00
+        \begin{tikzpicture}[inner sep=2pt]
+            % Two separate nodes so the spotlight can target "0.00" exactly.
+            \node[font=\fontsize{40}{40}\selectfont\bfseries,
+                  color=BadRed] (lhs) {$\Delta\mathrm{AP}_S \;=$};
+            \node[font=\fontsize{40}{40}\selectfont\bfseries,
+                  color=BadRed, right=4pt of lhs] (rhs) {$0.00$};
+            % Spotlight on click 2: red oval centered on "0.00"
             \only<2->{
                 \draw[BadRed, line width=1.2mm]
-                    ($(val.east)+(-1.2,0)$) ellipse [x radius=1.0, y radius=0.65];
+                    ($(rhs.center)+(0, 0.1)$)
+                    ellipse [x radius=1.55, y radius=0.85];
             }
         \end{tikzpicture}\\[1em]
         {\small\itshape\color{Light}the mechanism contributed nothing}
