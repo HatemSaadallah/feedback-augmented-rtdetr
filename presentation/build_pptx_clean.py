@@ -530,7 +530,7 @@ def build():
     prs = Presentation()
     prs.slide_width = SLIDE_W
     prs.slide_height = SLIDE_H
-    TOTAL = 27   # 24 content slides + 3 highlight-duplicate spotlights
+    TOTAL = 28   # 24 content slides + 4 highlight-duplicate spotlights
     SEC = "1. Problem Formulation"  # current section label, mutated below
 
     # Slide-index auto-counter — incrementing this lets us insert new slides
@@ -985,6 +985,33 @@ def build():
     add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.5),
              "Feedback helps. Spatial sampling helps too.",
              size=16, color=LIGHT, align=PP_ALIGN.CENTER)
+    add_footer(s, nx(), TOTAL, section="5. Final Results")
+
+    # ---------- SPOTLIGHT: same resolution slide, circle around 37.01 ----------
+    s = add_blank_slide(prs)
+    add_title(s, "Higher resolution → bigger gain")
+    add_text(s, Inches(0.7), Inches(2.4), Inches(5.8), Inches(0.5),
+             "640 × 640", size=22, color=LIGHT, align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.7), Inches(3.0), Inches(5.8), Inches(2.0),
+             f"{APS_ON:.2f}", size=88, bold=True, color=DARK, align=PP_ALIGN.CENTER)
+    arr = s.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW,
+                              Inches(5.8), Inches(3.6), Inches(1.7), Inches(0.6))
+    arr.fill.solid(); arr.fill.fore_color.rgb = NAVY
+    arr.line.fill.background()
+    add_text(s, Inches(6.8), Inches(2.4), Inches(5.8), Inches(0.5),
+             "800 × 800", size=22, color=NAVY, align=PP_ALIGN.CENTER, bold=True)
+    add_text(s, Inches(6.8), Inches(3.0), Inches(5.8), Inches(2.0),
+             f"{APS_800:.2f}", size=88, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.7), Inches(5.6), Inches(12.0), Inches(0.5),
+             f"+{APS_800 - APS_ON:.2f} from more pixels.",
+             size=22, color=DARK, italic=True, align=PP_ALIGN.CENTER)
+    add_text(s, Inches(0.7), Inches(6.2), Inches(12.0), Inches(0.5),
+             "Feedback helps. Spatial sampling helps too.",
+             size=16, color=LIGHT, align=PP_ALIGN.CENTER)
+    # SPOTLIGHT: green circle around the 37.01 number
+    add_circle_highlight(s,
+        Inches(7.3), Inches(2.95), Inches(4.8), Inches(2.1),
+        color=GREEN, lw=5)
     add_footer(s, nx(), TOTAL, section="5. Final Results")
 
     # ---------- 21. Strengths + Limitations (combined) ----------
